@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tìm kiếm Thuốc - PharmaCare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar-item {
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-item:hover {
+            background-color: #f3f4f6;
+            color: #1d4ed8;
+        }
+
+        .product-card {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+
+<body class="flex min-h-screen flex-col bg-gray-50">
+    <header class="sticky top-0 z-30 border-b bg-white shadow-sm">
+        <div class="mx-auto max-w-full px-6">
+            <div class="flex items-center justify-between py-3">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-purple-600">
+                        <i class="fas fa-pills text-xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">PharmaCare</h1>
+                        <p class="text-xs text-gray-500">Hệ thống quản lý nhà thuốc</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="relative">
+                        <input type="text" placeholder="Tìm kiếm thuốc...."
+                            class="w-64 rounded-full border py-2 pr-10 pl-4 text-sm focus:border-blue-500 focus:ring-blue-500" />
+                        <i class="fas fa-search absolute top-1/2 right-4 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500">
+                            <i class="fas fa-user text-lg text-white"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-800">Khách vãng lai</p>
+                            <p class="text-xs text-gray-600">Chưa đăng nhập</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1">
+        <aside class="w-64 flex-shrink-0 bg-white shadow-md">
+            <div class="border-b p-4">
+                <h3 class="text-lg font-semibold text-gray-800">Menu chính</h3>
+            </div>
+            <nav class="p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#"
+                            class="sidebar-item flex items-center space-x-3 rounded-lg p-3 font-medium text-gray-700"><i
+                                class="fas fa-home fa-fw"></i><span>Trang chủ</span></a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="sidebar-item flex items-center space-x-3 rounded-lg bg-blue-100 p-3 font-bold text-blue-600"><i
+                                class="fas fa-search fa-fw"></i><span>Tìm kiếm thuốc</span></a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="sidebar-item flex items-center space-x-3 rounded-lg p-3 font-medium text-gray-700"><i
+                                class="fas fa-info-circle fa-fw"></i><span>Thông tin thuốc</span></a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="sidebar-item flex items-center space-x-3 rounded-lg p-3 font-medium text-gray-700"><i
+                                class="fas fa-comments fa-fw"></i><span>Tư vấn</span></a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="sidebar-item flex items-center space-x-3 rounded-lg p-3 font-medium text-gray-700"><i
+                                class="fas fa-user-plus fa-fw"></i><span>Đăng ký</span></a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="sidebar-item flex items-center space-x-3 rounded-lg p-3 font-medium text-gray-700"><i
+                                class="fas fa-sign-in-alt fa-fw"></i><span>Đăng nhập</span></a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto p-8">
+            <div class="mx-auto max-w-7xl">
+                <h1 class="mb-6 text-3xl font-bold text-gray-800">Kết Quả Tìm Kiếm</h1>
+
+                <div class="mb-8 rounded-2xl bg-white p-6 shadow-lg">
+                    <div class="grid grid-cols-1 items-end gap-6 md:grid-cols-2 lg:grid-cols-5">
+                        <div class="lg:col-span-2">
+                            <label for="search-name" class="mb-1 block text-sm font-medium text-gray-700">Tên
+                                thuốc</label>
+                            <input type="text" id="search-name" value="Paracetamol"
+                                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                            <label for="search-category" class="mb-1 block text-sm font-medium text-gray-700">Danh
+                                mục</label>
+                            <select id="search-category"
+                                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                                <option>Tất cả</option>
+                                <option selected>Thuốc giảm đau</option>
+                                <option>Thuốc kháng sinh</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="search-manufacturer" class="mb-1 block text-sm font-medium text-gray-700">Nhà
+                                sản xuất</label>
+                            <select id="search-manufacturer"
+                                class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500">
+                                <option>Tất cả</option>
+                                <option>Traphaco</option>
+                                <option>DHG Pharma</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button
+                                class="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-bold text-white transition-colors hover:bg-blue-700"><i
+                                    class="fas fa-filter mr-2"></i> Lọc</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="mb-6 flex items-center justify-between">
+                        <p class="text-sm text-gray-700">Tìm thấy <span class="font-bold text-gray-900">8</span> sản
+                            phẩm</p>
+                        <div class="flex items-center">
+                            <label for="sort-by" class="mr-2 text-sm text-gray-700">Sắp xếp:</label>
+                            <select id="sort-by"
+                                class="rounded-lg border border-gray-300 py-2 text-sm focus:ring-blue-500">
+                                <option>Mặc định</option>
+                                <option>Giá: Tăng dần</option>
+                                <option>Giá: Giảm dần</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                        <div class="product-card flex flex-col overflow-hidden rounded-xl bg-white shadow-md">
+                            <a href="#" class="block h-48"><img
+                                    src="https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=PharmaCare"
+                                    alt="Paracetamol 500mg" class="h-full w-full object-cover" /></a>
+                            <div class="flex flex-grow flex-col p-4">
+                                <h3 class="mb-2 flex-grow text-lg font-semibold text-gray-800">Paracetamol 500mg</h3>
+                                <p class="mb-4 text-xl font-bold text-green-600">15.000đ</p>
+                                <a href="#"
+                                    class="mt-auto w-full rounded-lg bg-blue-50 px-4 py-2 text-center font-semibold text-blue-600 transition-colors hover:bg-blue-100">Xem
+                                    chi tiết</a>
+                            </div>
+                        </div>
+                        <div class="product-card flex flex-col overflow-hidden rounded-xl bg-white shadow-md">
+                            <a href="#" class="block h-48"><img
+                                    src="https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=PharmaCare"
+                                    alt="Paracetamol Extra" class="h-full w-full object-cover" /></a>
+                            <div class="flex flex-grow flex-col p-4">
+                                <h3 class="mb-2 flex-grow text-lg font-semibold text-gray-800">Panadol Extra</h3>
+                                <p class="mb-4 text-xl font-bold text-green-600">25.000đ</p>
+                                <a href="#"
+                                    class="mt-auto w-full rounded-lg bg-blue-50 px-4 py-2 text-center font-semibold text-blue-600 transition-colors hover:bg-blue-100">Xem
+                                    chi tiết</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex justify-center">
+                        <nav class="flex items-center space-x-2">
+                            <a href="#" class="rounded-lg bg-blue-600 px-4 py-2 text-white shadow">1</a>
+                            <a href="#"
+                                class="rounded-lg bg-white px-4 py-2 text-gray-600 shadow hover:bg-gray-100">2</a>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="bg-gray-800 text-white">
+        <div class="mx-auto max-w-full px-8 py-8">
+            <div class="grid grid-cols-1 gap-8 md:grid-cols-4">
+                <div>
+                    <div class="mb-4 flex items-center space-x-2">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500">
+                            <i class="fas fa-pills text-white"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold">PharmaCare</h3>
+                    </div>
+                    <p class="text-sm text-gray-400">Hệ thống quản lý nhà thuốc hiện đại, đáng tin cậy cho mọi nhu cầu
+                        chăm sóc sức khỏe.</p>
+                </div>
+                <div>
+                    <h4 class="mb-4 font-semibold">Dịch vụ</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white">Tìm kiếm thuốc</a></li>
+                        <li><a href="#" class="hover:text-white">Tư vấn dược sĩ</a></li>
+                        <li><a href="#" class="hover:text-white">Đặt hàng online</a></li>
+                        <li><a href="#" class="hover:text-white">Giao hàng tận nơi</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="mb-4 font-semibold">Hỗ trợ</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white">Liên hệ</a></li>
+                        <li><a href="#" class="hover:text-white">Câu hỏi thường gặp</a></li>
+                        <li><a href="#" class="hover:text-white">Chính sách bảo mật</a></li>
+                        <li><a href="#" class="hover:text-white">Điều khoản sử dụng</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="mb-4 font-semibold">Liên hệ</h4>
+                    <div class="space-y-2 text-sm text-gray-400">
+                        <p><i class="fas fa-phone fa-fw mr-2"></i> 1900 xxx xxx</p>
+                        <p><i class="fas fa-envelope fa-fw mr-2"></i> info@pharmacare.com</p>
+                        <p><i class="fas fa-map-marker-alt fa-fw mr-2"></i> 123 Nguyễn Văn Cừ, Q.1, TP.HCM</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
+                <p>&copy; 2025 PharmaCare. Tất cả quyền được bảo lưu.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

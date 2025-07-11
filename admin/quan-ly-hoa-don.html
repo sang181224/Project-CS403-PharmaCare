@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Hóa đơn - PharmaCare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar-item {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .sidebar-item:hover,
+        .sidebar-item-active {
+            background: linear-gradient(90deg, #3B82F6, #1E40AF);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+
+    <header class="bg-white shadow-sm border-b sticky top-0 z-30">
+        <div class="max-w-full mx-auto px-6">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-pills text-white text-xl"></i></div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">PharmaCare</h1>
+                        <p class="text-xs text-gray-500">Khu vực quản trị</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3"><img class="w-10 h-10 rounded-full"
+                        src="https://via.placeholder.com/100/D1D5DB/4B5563?text=NV" alt="Avatar">
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">Trần Thị B</p>
+                        <p class="text-xs text-gray-600">Nhân viên</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1">
+        <aside class="w-64 bg-gray-800 text-gray-300 flex-shrink-0">
+            <nav class="p-4 space-y-2">
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-tachometer-alt fa-fw"></i><span>Tổng quan</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-box fa-fw"></i><span>Quản lý Đơn hàng</span></a>
+                <a href="#" class="sidebar-item sidebar-item-active flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-receipt fa-fw"></i><span>Quản lý Hóa đơn</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-warehouse fa-fw"></i><span>Quản lý Kho</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-headset fa-fw"></i><span>Tư vấn khách hàng</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-file-invoice fa-fw"></i><span>Phiếu nhập / xuất</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-cog fa-fw"></i><span>Cài đặt Nhà thuốc</span></a>
+                <a href="#"
+                    class="sidebar-item flex items-center space-x-3 p-3 rounded-lg mt-8 border-t border-gray-700 pt-3"><i
+                        class="fas fa-sign-out-alt fa-fw"></i><span>Đăng xuất</span></a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">Quản lý Hóa đơn</h1>
+                        <p class="text-gray-600 mt-1">Tra cứu, xem và tải các hóa đơn đã phát hành.</p>
+                    </div>
+                    <button
+                        class="w-full sm:w-auto mt-4 sm:mt-0 bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-50 flex items-center justify-center space-x-2"><i
+                            class="fas fa-file-export"></i><span>Xuất báo cáo</span></button>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <input type="text" placeholder="Tìm theo Số HĐ, Mã ĐH, Tên KH..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <select
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Trạng thái thanh toán</option>
+                            <option value="paid">Đã thanh toán</option>
+                            <option value="unpaid">Chưa thanh toán</option>
+                        </select>
+                        <input type="date"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-500">
+                        <button
+                            class="bg-gray-800 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-900 transition-colors">Áp
+                            dụng</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-sm uppercase text-gray-700">
+                                <tr>
+                                    <th class="p-4 w-4"><input type="checkbox" class="rounded"></th>
+                                    <th class="px-6 py-3">Số HĐ</th>
+                                    <th class="px-6 py-3">Mã ĐH</th>
+                                    <th class="px-6 py-3">Khách hàng</th>
+                                    <th class="px-6 py-3">Ngày xuất</th>
+                                    <th class="px-6 py-3">Tổng tiền</th>
+                                    <th class="px-6 py-3">Trạng thái TT</th>
+                                    <th class="px-6 py-3 text-center">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="p-4"><input type="checkbox" class="rounded"></td>
+                                    <td class="px-6 py-4 font-medium"><a href="chi-tiet-hoa-don.html"
+                                            class="text-blue-600 hover:underline">HD001258</a></td>
+                                    <td class="px-6 py-4"><a href="chi-tiet-don-hang.html"
+                                            class="text-gray-600 hover:underline">#PC1258</a></td>
+                                    <td class="px-6 py-4">Nguyễn Thị Cẩm Tú</td>
+                                    <td class="px-6 py-4">11/07/2025</td>
+                                    <td class="px-6 py-4 font-semibold">85.000đ</td>
+                                    <td class="px-6 py-4"><span
+                                            class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Đã
+                                            thanh toán</span></td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center justify-center space-x-4 text-gray-500">
+                                            <a href="chi-tiet-hoa-don.html" class="hover:text-blue-600"
+                                                title="Xem chi tiết"><i class="fas fa-eye"></i></a>
+                                            <a href="#" class="hover:text-green-600" title="Tải PDF"><i
+                                                    class="fas fa-file-pdf"></i></a>
+                                            <button
+                                                onclick="document.getElementById('delete-invoice-modal').classList.remove('hidden');"
+                                                class="hover:text-red-600" title="Xóa hóa đơn"><i
+                                                    class="fas fa-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 flex justify-between items-center"><span class="text-sm text-gray-700">Hiển thị
+                            <span class="font-semibold text-gray-900">1</span>-<span
+                                class="font-semibold text-gray-900">1</span> trên <span
+                                class="font-semibold text-gray-900">1</span></span>
+                        <div class="inline-flex -space-x-px"><a href="#"
+                                class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100">Trước</a><a
+                                href="#"
+                                class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100">Sau</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="bg-gray-800 text-white">
+        <div class="max-w-full mx-auto px-8 py-8">
+            <div class="border-t border-gray-700 pt-6 text-center text-gray-400 text-sm">
+                <p>&copy; 2025 PharmaCare. Tất cả quyền được bảo lưu.</p>
+            </div>
+        </div>
+    </footer>
+
+    <div id="delete-invoice-modal"
+        class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm mx-auto">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800">Xác nhận xóa hóa đơn</h3>
+                <p class="text-gray-600 mt-2">Bạn có chắc chắn muốn xóa hóa đơn #HD001258 không? Hành động này không thể
+                    hoàn tác.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-8">
+                <button onclick="document.getElementById('delete-invoice-modal').classList.add('hidden');"
+                    class="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Hủy bỏ</button>
+                <button class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Xác nhận
+                    xóa</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
