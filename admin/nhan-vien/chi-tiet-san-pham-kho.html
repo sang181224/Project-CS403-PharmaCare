@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết sản phẩm trong kho - PharmaCare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .sidebar-item {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .sidebar-item:hover,
+        .sidebar-item-active {
+            background: linear-gradient(90deg, #3B82F6, #1E40AF);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(0, 118, 255, 0.39);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+
+    <header class="bg-white shadow-sm border-b sticky top-0 z-30">
+        <div class="max-w-full mx-auto px-6">
+            <div class="flex justify-between items-center py-3">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-pills text-white text-xl"></i></div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">PharmaCare</h1>
+                        <p class="text-xs text-gray-500">Khu vực quản trị</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3"><img class="w-10 h-10 rounded-full"
+                        src="https://via.placeholder.com/100/D1D5DB/4B5563?text=NV" alt="Avatar">
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">Trần Thị B</p>
+                        <p class="text-xs text-gray-600">Nhân viên</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1">
+        <aside class="w-64 bg-gray-800 text-gray-300 flex-shrink-0">
+            <nav class="p-4 space-y-2">
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-tachometer-alt fa-fw"></i><span>Tổng quan</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-box fa-fw"></i><span>Quản lý Đơn hàng</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-receipt fa-fw"></i><span>Quản lý Hóa đơn</span></a>
+                <a href="#" class="sidebar-item sidebar-item-active flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-warehouse fa-fw"></i><span>Quản lý Kho</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-headset fa-fw"></i><span>Tư vấn khách hàng</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-file-invoice fa-fw"></i><span>Phiếu nhập / xuất</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i
+                        class="fas fa-cog fa-fw"></i><span>Cài đặt Nhà thuốc</span></a>
+                <a href="#"
+                    class="sidebar-item flex items-center space-x-3 p-3 rounded-lg mt-8 border-t border-gray-700 pt-3"><i
+                        class="fas fa-sign-out-alt fa-fw"></i><span>Đăng xuất</span></a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+                    <div>
+                        <nav class="text-sm mb-2" aria-label="Breadcrumb">
+                            <ol class="list-none p-0 inline-flex space-x-2">
+                                <li class="flex items-center"><a href="quan-ly-kho.html"
+                                        class="text-gray-500 hover:text-blue-600">Quản lý Kho</a></li>
+                                <li class="flex items-center"><i
+                                        class="fas fa-chevron-right text-xs text-gray-400 mx-2"></i><span
+                                        class="text-gray-800 font-medium">Chi tiết sản phẩm</span></li>
+                            </ol>
+                        </nav>
+                        <h1 class="text-3xl font-bold text-gray-800">Paracetamol 500mg</h1>
+                    </div>
+                    <div class="flex space-x-2 mt-4 sm:mt-0">
+                        <button
+                            class="bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-50"><i
+                                class="fas fa-pencil-alt mr-2"></i>Sửa thông tin</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Thông tin chung</h2>
+                    <dl class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Mã thuốc (SKU)</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">PARA500</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Danh mục</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">Thuốc giảm đau</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Giá bán</dt>
+                            <dd class="mt-1 font-semibold text-gray-900">15.000đ / Hộp</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Các lô hàng trong kho</h2>
+                        <button class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700"><i
+                                class="fas fa-plus mr-2"></i>Nhập lô mới</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-sm text-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3">Mã Lô</th>
+                                    <th class="px-6 py-3">SL Tồn</th>
+                                    <th class="px-6 py-3">Giá Nhập</th>
+                                    <th class="px-6 py-3">Ngày SX</th>
+                                    <th class="px-6 py-3">Hạn Dùng</th>
+                                    <th class="px-6 py-3">Vị trí</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-medium text-gray-900">L250710A</td>
+                                    <td class="px-6 py-4 font-semibold">150</td>
+                                    <td class="px-6 py-4">10.000đ</td>
+                                    <td class="px-6 py-4">10/07/2024</td>
+                                    <td class="px-6 py-4 text-green-600 font-medium">10/07/2026</td>
+                                    <td class="px-6 py-4">Kệ A1</td>
+                                </tr>
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-medium text-gray-900">L241225B</td>
+                                    <td class="px-6 py-4 font-semibold">100</td>
+                                    <td class="px-6 py-4">9.800đ</td>
+                                    <td class="px-6 py-4">25/12/2023</td>
+                                    <td class="px-6 py-4 text-orange-500 font-medium">25/12/2025 (Sắp hết hạn)</td>
+                                    <td class="px-6 py-4">Kệ A2</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="bg-gray-800 text-white">
+        <div class="max-w-full mx-auto px-8 py-8">
+            <div class="border-t border-gray-700 pt-6 text-center text-gray-400 text-sm">
+                <p>&copy; 2025 PharmaCare. Tất cả quyền được bảo lưu.</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>

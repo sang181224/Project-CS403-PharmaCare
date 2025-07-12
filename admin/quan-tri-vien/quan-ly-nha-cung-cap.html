@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Nhà cung cấp - PharmaCare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'); body { font-family: 'Inter', sans-serif; } .sidebar-item:hover, .sidebar-item-active { background: linear-gradient(90deg, #8B5CF6, #6D28D9); color: white; }</style>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+
+    <header class="bg-white shadow-sm border-b sticky top-0 z-30"><div class="max-w-full mx-auto px-6"><div class="flex justify-between items-center py-3"><div class="flex items-center space-x-3"><div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg flex items-center justify-center"><i class="fas fa-shield-alt text-white text-xl"></i></div><div><h1 class="text-xl font-bold text-gray-800">PharmaCare</h1><p class="text-xs text-gray-500">Super Admin</p></div></div><div class="flex items-center space-x-3"><img class="w-10 h-10 rounded-full ring-2 ring-purple-500" src="https://via.placeholder.com/100/A78BFA/FFFFFF?text=A" alt="Avatar"><div><p class="text-sm font-medium text-gray-800">Phan Văn Trị</p><p class="text-xs text-gray-600">Quản trị viên</p></div></div></div></div></header>
+
+    <div class="flex flex-1">
+        <aside class="w-64 bg-gray-800 text-gray-300 flex-shrink-0">
+            <nav class="p-4 space-y-2">
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i class="fas fa-tachometer-alt fa-fw"></i><span>Tổng quan</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i class="fas fa-chart-line fa-fw"></i><span>Phân tích & Báo cáo</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg"><i class="fas fa-users-cog fa-fw"></i><span>Quản lý Nhân viên</span></a>
+                <a href="#" class="sidebar-item sidebar-item-active flex items-center space-x-3 p-3 rounded-lg"><i class="fas fa-truck-loading fa-fw"></i><span>Quản lý Nhà cung cấp</span></a>
+                <a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg mt-8 border-t border-gray-700 pt-3"><i class="fas fa-sign-out-alt fa-fw"></i><span>Đăng xuất</span></a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex justify-between items-center mb-8"><h1 class="text-3xl font-bold text-gray-800">Quản lý Nhà cung cấp</h1><a href="them-nha-cung-cap.html" class="bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700"><i class="fas fa-plus mr-2"></i>Thêm nhà cung cấp</a></div>
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-sm uppercase text-gray-700"><tr><th class="p-4"><input type="checkbox"></th><th class="px-6 py-3">Tên Nhà cung cấp</th><th class="px-6 py-3">Người liên lạc</th><th class="px-6 py-3">Số điện thoại</th><th class="px-6 py-3 text-center">Hành động</th></tr></thead>
+                            <tbody>
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="p-4"><input type="checkbox"></td>
+                                    <td class="px-6 py-4 font-medium">Công ty Cổ phần Traphaco</td>
+                                    <td class="px-6 py-4">Nguyễn Minh Tuấn</td>
+                                    <td class="px-6 py-4">0987 654 321</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center justify-center space-x-4 text-gray-500">
+                                            <a href="sua-nha-cung-cap.html" class="hover:text-purple-600" title="Sửa"><i class="fas fa-pencil-alt"></i></a>
+                                            <button onclick="document.getElementById('delete-supplier-modal').classList.remove('hidden')" class="hover:text-red-600" title="Xóa"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <footer class="bg-gray-800 text-white"><div class="max-w-full mx-auto px-8 py-8"><div class="border-t border-gray-700 pt-6 text-center text-gray-400 text-sm"><p>&copy; 2025 PharmaCare. Tất cả quyền được bảo lưu.</p></div></div></footer>
+
+    <div id="delete-supplier-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm mx-auto"><div class="text-center"><div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-exclamation-triangle text-red-500 text-3xl"></i></div><h3 class="text-2xl font-bold">Xác nhận xóa</h3><p class="mt-2 text-gray-600">Bạn có chắc muốn xóa nhà cung cấp này không?</p></div><div class="grid grid-cols-2 gap-4 mt-8"><button onclick="document.getElementById('delete-supplier-modal').classList.add('hidden')" class="bg-gray-200 font-bold py-2 rounded-lg">Hủy bỏ</button><button class="bg-red-600 text-white font-bold py-2 rounded-lg">Xác nhận xóa</button></div></div>
+    </div>
+</body>
+</html>

@@ -195,7 +195,57 @@
             </div>
         </div>
     </footer>
+    <script>
+        const form = document.querySelector('form');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
 
+            const email = document.getElementById('email').value;
+            const matKhau = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        matKhau
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(result.message);
+
+                    // Lưu token và thông tin người dùng vào trình duyệt
+                    localStorage.setItem('authToken', result.token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+
+                    // --- LOGIC CHUYỂN HƯỚNG THEO VAI TRÒ ---
+                    const userRole = result.user.vaiTro;
+
+                    if (userRole === 'quan_tri_vien') {
+                        // Nếu là Quản trị viên, chuyển đến dashboard admin
+                        window.location.href = './admin/quan-tri-vien/dashboard.html';
+                    } else if (userRole === 'nhan_vien') {
+                        // Nếu là Nhân viên, chuyển đến dashboard nhân viên
+                        window.location.href = './admin/nhan-vien/dashboard.html';
+                    } else {
+                        // Nếu là Thành viên (hoặc vai trò khác), chuyển về trang chủ
+                        window.location.href = 'index.html';
+                    }
+
+                } else {
+                    alert('Lỗi: ' + result.error);
+                }
+            } catch (error) {
+                alert('Lỗi kết nối đến server.');
+            }
+        });
+    </script>
 </body>
 
 </html>

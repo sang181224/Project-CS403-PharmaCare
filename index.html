@@ -14,25 +14,13 @@
             font-family: 'Inter', sans-serif;
         }
 
-        .sidebar-item {
-            transition: all 0.3s ease;
-        }
-
         .sidebar-item:hover {
             background-color: #f3f4f6;
-            /* gray-100 */
             color: #1d4ed8;
-            /* blue-700 */
         }
 
         .hero-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .card-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-            transition: all 0.3s ease-in-out;
         }
     </style>
 </head>
@@ -45,27 +33,18 @@
                 <div class="flex items-center space-x-3">
                     <div
                         class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-pills text-white text-xl"></i>
-                    </div>
+                        <i class="fas fa-pills text-white text-xl"></i></div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-800">PharmaCare</h1>
                         <p class="text-xs text-gray-500">Hệ thống quản lý nhà thuốc</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-6">
-                    <div class="relative">
-                        <input type="text" placeholder="Tìm kiếm thuốc...."
-                            class="w-64 pl-4 pr-10 py-2 border rounded-full text-sm focus:ring-blue-500 focus:border-blue-500">
-                        <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                            <i class="fas fa-user text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-800">Khách vãng lai</p>
-                            <p class="text-xs text-gray-600">Chưa đăng nhập</p>
-                        </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center"><i
+                            class="fas fa-user text-blue-600 text-lg"></i></div>
+                    <div>
+                        <p id="user-name" class="text-sm font-medium text-gray-800">Khách vãng lai</p>
+                        <p id="user-role" class="text-xs text-gray-600">Chưa đăng nhập</p>
                     </div>
                 </div>
             </div>
@@ -78,11 +57,11 @@
                 <h3 class="text-lg font-semibold text-gray-800">Menu chính</h3>
             </div>
             <nav class="p-4">
-                <ul class="space-y-2">
-                    <li><a href="#"
+                <ul id="sidebar-menu" class="space-y-2">
+                    <li><a href="index.html"
                             class="sidebar-item flex items-center space-x-3 p-3 rounded-lg bg-blue-100 text-blue-600 font-bold"><i
                                 class="fas fa-home fa-fw"></i><span>Trang chủ</span></a></li>
-                    <li><a href="#"
+                    <li><a href="tim-kiem.html"
                             class="sidebar-item flex items-center space-x-3 p-3 rounded-lg text-gray-700 font-medium"><i
                                 class="fas fa-search fa-fw"></i><span>Tìm kiếm thuốc</span></a></li>
                     <li><a href="#"
@@ -91,10 +70,10 @@
                     <li><a href="#"
                             class="sidebar-item flex items-center space-x-3 p-3 rounded-lg text-gray-700 font-medium"><i
                                 class="fas fa-comments fa-fw"></i><span>Tư vấn</span></a></li>
-                    <li><a href="#"
+                    <li id="menu-register"><a href="dang-ky.html"
                             class="sidebar-item flex items-center space-x-3 p-3 rounded-lg text-gray-700 font-medium"><i
                                 class="fas fa-user-plus fa-fw"></i><span>Đăng ký</span></a></li>
-                    <li><a href="#"
+                    <li id="menu-login"><a href="dang-nhap.html"
                             class="sidebar-item flex items-center space-x-3 p-3 rounded-lg text-gray-700 font-medium"><i
                                 class="fas fa-sign-in-alt fa-fw"></i><span>Đăng nhập</span></a></li>
                 </ul>
@@ -102,223 +81,84 @@
         </aside>
 
         <main class="flex-1 overflow-y-auto">
-            <section class="hero-section text-white py-16 px-8">
-                <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                    <div class="z-10 relative">
-                        <h2 class="text-4xl lg:text-5xl font-bold mb-6 leading-tight">Chào mừng đến với <span
-                                class="text-yellow-300">PharmaCare</span></h2>
-                        <p class="text-xl mb-8 text-gray-100">Hệ thống quản lý nhà thuốc hiện đại, giúp bạn tìm kiếm và
-                            quản lý thuốc một cách dễ dàng, nhanh chóng và chính xác.</p>
-                        <div class="flex flex-col sm:flex-row gap-4">
-                            <a href="#"
-                                class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-center">
-                                <i class="fas fa-search mr-2"></i>Tìm kiếm thuốc
-                            </a>
-                            <a href="#"
-                                class="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors text-center">
-                                <i class="fas fa-comments mr-2"></i>Tư vấn ngay
-                            </a>
-                        </div>
-                    </div>
-                    <div class="relative z-10 hidden lg:block">
-                        <div class="bg-white bg-opacity-20 rounded-2xl p-8 backdrop-blur-sm">
-                            <div class="grid grid-cols-2 gap-6 text-center">
-                                <div>
-                                    <div
-                                        class="w-16 h-16 bg-white bg-opacity-30 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <i class="fas fa-pills text-white text-2xl"></i></div>
-                                    <h4 class="font-semibold text-lg">1000+</h4>
-                                    <p class="text-sm text-gray-200">Loại thuốc</p>
-                                </div>
-                                <div>
-                                    <div
-                                        class="w-16 h-16 bg-white bg-opacity-30 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <i class="fas fa-users text-white text-2xl"></i></div>
-                                    <h4 class="font-semibold text-lg">5000+</h4>
-                                    <p class="text-sm text-gray-200">Khách hàng</p>
-                                </div>
-                                <div>
-                                    <div
-                                        class="w-16 h-16 bg-white bg-opacity-30 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <i class="fas fa-clock text-white text-2xl"></i></div>
-                                    <h4 class="font-semibold text-lg">24/7</h4>
-                                    <p class="text-sm text-gray-200">Hỗ trợ</p>
-                                </div>
-                                <div>
-                                    <div
-                                        class="w-16 h-16 bg-white bg-opacity-30 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <i class="fas fa-shield-alt text-white text-2xl"></i></div>
-                                    <h4 class="font-semibold text-lg">100%</h4>
-                                    <p class="text-sm text-gray-200">Chất lượng</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <section id="member-dashboard" class="hidden p-8">
+                <div class="max-w-7xl mx-auto">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Chào mừng trở lại, <span id="member-name">Thành
+                            viên</span>!</h1>
+                    <p class="text-gray-600 mb-8">Kiểm tra các đơn hàng và thông tin của bạn tại đây.</p>
                 </div>
             </section>
 
-            <div class="p-8 space-y-12">
-                <section class="max-w-7xl mx-auto -mt-24 relative z-10">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="card-hover bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Tổng số thuốc</p>
-                                    <p class="text-2xl font-bold text-gray-900">1,247</p>
-                                </div>
-                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center"><i
-                                        class="fas fa-pills text-blue-600 text-xl"></i></div>
-                            </div>
-                        </div>
-                        <div class="card-hover bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Đơn hàng mới</p>
-                                    <p class="text-2xl font-bold text-gray-900">86</p>
-                                </div>
-                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center"><i
-                                        class="fas fa-dolly-flatbed text-green-600 text-xl"></i></div>
-                            </div>
-                        </div>
-                        <div class="card-hover bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Sắp hết hạn</p>
-                                    <p class="text-2xl font-bold text-gray-900">23</p>
-                                </div>
-                                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center"><i
-                                        class="fas fa-exclamation-triangle text-orange-600 text-xl"></i></div>
-                            </div>
-                        </div>
-                        <div class="card-hover bg-white p-6 rounded-xl border border-gray-200 shadow-lg">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-600">Yêu cầu tư vấn</p>
-                                    <p class="text-2xl font-bold text-gray-900">12</p>
-                                </div>
-                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center"><i
-                                        class="fas fa-headset text-purple-600 text-xl"></i></div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <section class="max-w-7xl mx-auto">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-bold text-gray-800">Sản phẩm nổi bật</h3>
-                        <a href="#" class="text-blue-600 hover:text-blue-800 font-medium">Xem tất cả <i
-                                class="fas fa-arrow-right ml-1"></i></a>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
-                        <div class="card-hover bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
-                            <a href="#" class="block h-48">
-                                <img src="https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=PharmaCare"
-                                    alt="Paracetamol 500mg" class="w-full h-full object-cover">
-                            </a>
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-2 flex-grow">Paracetamol 500mg</h3>
-                                <p class="text-xl font-bold text-green-600 mb-4">15.000đ</p>
-                                <a href="#"
-                                    class="mt-auto w-full bg-blue-50 text-blue-600 font-semibold py-2 px-4 rounded-lg hover:bg-blue-100 transition-colors text-center">
-                                    Xem chi tiết
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="card-hover bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
-                            <a href="#" class="block h-48">
-                                <img src="https://via.placeholder.com/400x400.png/ECFDF5/6EE7B7?text=PharmaCare"
-                                    alt="Vitamin C 1000mg" class="w-full h-full object-cover">
-                            </a>
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-2 flex-grow">Vitamin C 1000mg</h3>
-                                <p class="text-xl font-bold text-green-600 mb-4">45.000đ</p>
-                                <a href="#"
-                                    class="mt-auto w-full bg-blue-50 text-blue-600 font-semibold py-2 px-4 rounded-lg hover:bg-blue-100 transition-colors text-center">
-                                    Xem chi tiết
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="card-hover bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
-                            <a href="#" class="block h-48">
-                                <img src="https://via.placeholder.com/400x400.png/FFF7ED/FDBA74?text=PharmaCare"
-                                    alt="Ibuprofen 400mg" class="w-full h-full object-cover">
-                            </a>
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-2 flex-grow">Ibuprofen 400mg</h3>
-                                <p class="text-xl font-bold text-green-600 mb-4">35.000đ</p>
-                                <a href="#"
-                                    class="mt-auto w-full bg-blue-50 text-blue-600 font-semibold py-2 px-4 rounded-lg hover:bg-blue-100 transition-colors text-center">
-                                    Xem chi tiết
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="card-hover bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
-                            <a href="#" class="block h-48">
-                                <img src="https://via.placeholder.com/400x400.png/F0FDFA/5EEAD4?text=PharmaCare"
-                                    alt="Omeprazole 20mg" class="w-full h-full object-cover">
-                            </a>
-                            <div class="p-4 flex flex-col flex-grow">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-2 flex-grow">Omeprazole 20mg</h3>
-                                <p class="text-xl font-bold text-green-600 mb-4">125.000đ</p>
-                                <a href="#"
-                                    class="mt-auto w-full bg-blue-50 text-blue-600 font-semibold py-2 px-4 rounded-lg hover:bg-blue-100 transition-colors text-center">
-                                    Xem chi tiết
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
+            <section id="hero-section" class="hero-section text-white py-16 px-8">
+                <div class="max-w-7xl mx-auto">
+                    <h2 class="text-4xl lg:text-5xl font-bold mb-6 leading-tight">Chào mừng đến với <span
+                            class="text-yellow-300">PharmaCare</span></h2>
+                </div>
+            </section>
         </main>
     </div>
 
     <footer class="bg-gray-800 text-white">
         <div class="max-w-full mx-auto px-8 py-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center"><i
-                                class="fas fa-pills text-white"></i></div>
-                        <h3 class="text-lg font-semibold">PharmaCare</h3>
-                    </div>
-                    <p class="text-gray-400 text-sm">Hệ thống quản lý nhà thuốc hiện đại, đáng tin cậy cho mọi nhu cầu
-                        chăm sóc sức khỏe.</p>
-                </div>
-                <div>
-                    <h4 class="font-semibold mb-4">Dịch vụ</h4>
-                    <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="#" class="hover:text-white">Tìm kiếm thuốc</a></li>
-                        <li><a href="#" class="hover:text-white">Tư vấn dược sĩ</a></li>
-                        <li><a href="#" class="hover:text-white">Đặt hàng online</a></li>
-                        <li><a href="#" class="hover:text-white">Giao hàng tận nơi</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-semibold mb-4">Hỗ trợ</h4>
-                    <ul class="space-y-2 text-gray-400 text-sm">
-                        <li><a href="#" class="hover:text-white">Liên hệ</a></li>
-                        <li><a href="#" class="hover:text-white">Câu hỏi thường gặp</a></li>
-                        <li><a href="#" class="hover:text-white">Chính sách bảo mật</a></li>
-                        <li><a href="#" class="hover:text-white">Điều khoản sử dụng</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="font-semibold mb-4">Liên hệ</h4>
-                    <div class="space-y-2 text-gray-400 text-sm">
-                        <p><i class="fas fa-phone fa-fw mr-2"></i> 1900 xxx xxx</p>
-                        <p><i class="fas fa-envelope fa-fw mr-2"></i> info@pharmacare.com</p>
-                        <p><i class="fas fa-map-marker-alt fa-fw mr-2"></i> 123 Nguyễn Văn Cừ, Q.1, TP.HCM</p>
-                    </div>
-                </div>
-            </div>
-            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400 text-sm">
+            <div class="border-t border-gray-700 pt-6 text-center text-gray-400 text-sm">
                 <p>&copy; 2025 PharmaCare. Tất cả quyền được bảo lưu.</p>
             </div>
         </div>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('authToken');
+            const user = JSON.parse(localStorage.getItem('user'));
+
+            const heroSection = document.getElementById('hero-section');
+            const memberDashboard = document.getElementById('member-dashboard');
+
+            const sidebarMenu = document.getElementById('sidebar-menu');
+            const menuLogin = document.getElementById('menu-login');
+            const menuRegister = document.getElementById('menu-register');
+
+            if (token && user) {
+                // --- CÓ ĐĂNG NHẬP ---
+                // 1. Cập nhật Header
+                document.getElementById('user-name').textContent = user.hoTen;
+                document.getElementById('user-role').textContent = user.email;
+
+                // 2. Cập nhật Nội dung
+                if (heroSection) heroSection.classList.add('hidden');
+                if (memberDashboard) {
+                    memberDashboard.classList.remove('hidden');
+                    document.getElementById('member-name').textContent = user.hoTen;
+                }
+
+                // 3. Cập nhật Sidebar
+                if (menuLogin) menuLogin.remove();
+                if (menuRegister) menuRegister.remove();
+
+                // Tạo menu mới cho người đã đăng nhập
+                const accountMenu = `
+                    <li><a href="#" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg text-gray-700 font-medium"><i class="fas fa-user-circle fa-fw"></i><span>Tài khoản của tôi</span></a></li>
+                    <li><a href="#" id="logout-button" class="sidebar-item flex items-center space-x-3 p-3 rounded-lg text-gray-700 font-medium"><i class="fas fa-sign-out-alt fa-fw"></i><span>Đăng xuất</span></a></li>
+                `;
+                sidebarMenu.insertAdjacentHTML('beforeend', accountMenu);
+
+                // Thêm sự kiện cho nút đăng xuất
+                document.getElementById('logout-button').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('user');
+                    alert('Bạn đã đăng xuất.');
+                    window.location.reload(); // Tải lại trang
+                });
+
+            } else {
+                // --- KHÔNG ĐĂNG NHẬP ---
+                // Giữ nguyên giao diện mặc định cho khách vãng lai
+                if (heroSection) heroSection.classList.remove('hidden');
+                if (memberDashboard) memberDashboard.classList.add('hidden');
+            }
+        });
+    </script>
 
 </body>
 
