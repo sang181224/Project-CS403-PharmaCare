@@ -28,6 +28,14 @@ import ConsultationPage from './pages/admin/nhan-vien/ConsultationPage.jsx';
 import GoodsReceiptIssuePage from './pages/admin/nhan-vien/GoodsReceiptIssuePage.jsx';
 import CreateReceiptPage from './pages/admin/nhan-vien/CreateReceiptPage.jsx';
 import CreateIssuePage from './pages/admin/nhan-vien/CreateIssuePage.jsx';
+import AddEmployeePage from './pages/admin/quan-tri-vien/AddEmployeePage.jsx';
+import EmployeeManagementPage from './pages/admin/quan-tri-vien/EmployeeManagementPage.jsx';
+import DebugLoginPage from './pages/DebugLoginPage.jsx';
+import AdminDashboardPage from './pages/admin/quan-tri-vien/AdminDashboardPage.jsx';
+import EditEmployeePage from './pages/admin/quan-tri-vien/EditEmployeePage.jsx';
+import SupplierManagementPage from './pages/admin/quan-tri-vien/SupplierManagementPage.jsx';
+import EditSupplierPage from './pages/admin/quan-tri-vien/EditSupplierPage.jsx';
+import AddSupplierPage from './pages/admin/quan-tri-vien/AddSupplierPage.jsx';
 // (Chúng ta sẽ import các trang admin khác ở đây khi tạo chúng)
 
 
@@ -58,6 +66,10 @@ const router = createBrowserRouter([
         path: "/san-pham/:id", // Route động cho chi tiết sản phẩm
         element: <ProductDetailPage />,
       },
+      {
+        path: "/debug-login", // <-- Thêm route debug
+        element: <DebugLoginPage />
+      },
     ],
   },
 
@@ -73,6 +85,10 @@ const router = createBrowserRouter([
           {
             path: "dashboard",
             element: <DashboardPage />,
+          },
+          {
+            path: "dashboard-admin", // <-- Thêm route mới cho Admin
+            element: <AdminDashboardPage />
           },
           {
             path: "don-hang", // <-- Thêm route mới
@@ -118,6 +134,30 @@ const router = createBrowserRouter([
             path: "phieu-xuat/them", // <-- Thêm route mới
             element: <CreateIssuePage />
           },
+
+          {
+            path: "nhan-vien", element: <EmployeeManagementPage />
+          },
+          {
+            path: "nhan-vien/them", // <-- Thêm route mới
+            element: <AddEmployeePage />
+          },
+          {
+            path: "nhan-vien/sua/:id",
+            element: <EditEmployeePage />
+          },
+          {
+            path: "nha-cung-cap",
+            element: <SupplierManagementPage />
+          },
+          {
+            path: "nha-cung-cap/them",
+            element: <AddSupplierPage />
+          },
+          {
+            path: "nha-cung-cap/sua/:id",
+            element: <EditSupplierPage />
+          }
 
         ],
       },
