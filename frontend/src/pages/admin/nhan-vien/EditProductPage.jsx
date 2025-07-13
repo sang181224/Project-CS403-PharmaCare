@@ -1,33 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
-// Dữ liệu mẫu
-const productData = {
-    id: 'PARA500',
-    name: 'Paracetamol 500mg',
-    description: 'Thuốc giảm đau, hạ sốt hiệu quả.',
-    category: 'Thuốc giảm đau',
-    manufacturer: 'Traphaco',
-    unit: 'Hộp',
-    price: 15000,
-};
-
 function EditProductPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [product, setProduct] = useState({ ...productData }); // Giả lập dữ liệu đã được fetch
+    
+    const [product, setProduct] = useState({
+        ten_thuoc: '', ma_thuoc: '', danh_muc: '', nha_san_xuat: '', 
+        don_vi_tinh: '', gia_ban: '', mo_ta: ''
+    });
+    const [imageFile, setImageFile] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Lấy dữ liệu sản phẩm hiện tại để điền vào form
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                const response = await fetch(`http://localhost:3000/api/products/${id}`);
+                const data = await response.json();
+                if (response.ok) {
+                    setProduct(data);
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải sản phẩm:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchProduct();
+    }, [id]);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setProduct(prev => ({ ...prev, [name]: value }));
+        setProduct(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log('Dữ liệu cập nhật:', product);
-        alert('Cập nhật sản phẩm thành công!');
-        navigate('/admin/kho'); // Quay về trang danh sách
+    const handleFileChange = (e) => {
+        setImageFile(e.target.files[0]);
     };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        for (const key in product) {
+            formData.append(key, product[key]);
+        }
+        if (imageFile) {
+            formData.append('hinh_anh', imageFile);
+        }
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/products/${id}`, {
+                method: 'PUT',
+                body: formData,
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message);
+                navigate(`/admin/kho/${id}`);
+            } else {
+                alert('Lỗi: ' + result.error);
+            }
+        } catch (error) {
+            alert('Lỗi kết nối.');
+        }
+    };
+
+    if (isLoading) return <div>Đang tải...</div>;
 
     return (
         <>
@@ -36,18 +74,21 @@ function EditProductPage() {
                 <h1 className="text-3xl font-bold text-gray-800">Sửa thông tin sản phẩm</h1>
             </div>
 
-            <form onSubmit={handleSubmit}>
-                <div className="bg-white p-8 rounded-2xl shadow-lg space-y-6">
+            <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-lg max-w-4xl mx-auto">
+                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label htmlFor="name" className="block text-sm font-medium">Tên thuốc</label><input type="text" id="name" name="name" value={product.name} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg" /></div>
-                        <div><label htmlFor="id" className="block text-sm font-medium">Mã thuốc (SKU)</label><input type="text" id="id" name="id" value={product.id} className="w-full mt-1 px-4 py-2 border rounded-lg bg-gray-200" readOnly /></div>
-                        <div className="md:col-span-2"><label htmlFor="description" className="block text-sm font-medium">Mô tả ngắn</label><textarea id="description" name="description" value={product.description} onChange={handleChange} rows="3" className="w-full mt-1 px-4 py-2 border rounded-lg"></textarea></div>
-                        <div><label htmlFor="category" className="block text-sm font-medium">Danh mục</label><select id="category" name="category" value={product.category} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg"><option>Thuốc giảm đau</option><option>Thuốc kháng sinh</option></select></div>
-                        <div><label htmlFor="manufacturer" className="block text-sm font-medium">Nhà sản xuất</label><select id="manufacturer" name="manufacturer" value={product.manufacturer} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg"><option>Traphaco</option><option>DHG Pharma</option></select></div>
+                        <div><label htmlFor="ten_thuoc" className="block text-sm font-medium">Tên thuốc</label><input type="text" name="ten_thuoc" id="ten_thuoc" value={product.ten_thuoc} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg" required /></div>
+                        <div><label htmlFor="ma_thuoc" className="block text-sm font-medium">Mã thuốc (SKU)</label><input type="text" name="ma_thuoc" id="ma_thuoc" value={product.ma_thuoc} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg" required /></div>
+                        <div className="md:col-span-2"><label htmlFor="mo_ta" className="block text-sm font-medium">Mô tả ngắn</label><textarea name="mo_ta" id="mo_ta" value={product.mo_ta} onChange={handleChange} rows="3" className="w-full mt-1 px-4 py-2 border rounded-lg"></textarea></div>
+                        <div><label htmlFor="danh_muc" className="block text-sm font-medium">Danh mục</label><select name="danh_muc" id="danh_muc" value={product.danh_muc} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg"><option>Thuốc giảm đau</option><option>Thuốc kháng sinh</option></select></div>
+                        <div><label htmlFor="nha_san_xuat" className="block text-sm font-medium">Nhà sản xuất</label><select name="nha_san_xuat" id="nha_san_xuat" value={product.nha_san_xuat} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg"><option>Traphaco</option><option>DHG Pharma</option></select></div>
+                        <div><label htmlFor="don_vi_tinh" className="block text-sm font-medium">Đơn vị tính</label><input type="text" name="don_vi_tinh" id="don_vi_tinh" value={product.don_vi_tinh} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg" /></div>
+                        <div><label htmlFor="gia_ban" className="block text-sm font-medium">Giá bán (VNĐ)</label><input type="number" name="gia_ban" id="gia_ban" value={product.gia_ban} onChange={handleChange} className="w-full mt-1 px-4 py-2 border rounded-lg" required /></div>
+                        <div className="md:col-span-2"><label className="block text-sm font-medium">Đổi hình ảnh (để trống nếu không đổi)</label><input type="file" name="hinh_anh" onChange={handleFileChange} accept="image/*" className="block w-full text-sm mt-1" /></div>
                     </div>
                     <div className="pt-6 border-t flex justify-end space-x-4">
-                        <Link to="/admin/kho" className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Hủy bỏ</Link>
-                        <button type="submit" className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Lưu thay đổi</button>
+                        <Link to={`/admin/kho/${id}`} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg">Hủy bỏ</Link>
+                        <button type="submit" className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Lưu thay đổi</button>
                     </div>
                 </div>
             </form>

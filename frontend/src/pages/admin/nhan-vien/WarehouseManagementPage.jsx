@@ -1,72 +1,73 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react'; // <-- Thêm useEffect
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faPencilAlt, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
 
-// Dữ liệu mẫu ban đầu
-const initialProducts = [
-  { id: 'PARA500', name: 'Paracetamol 500mg', manufacturer: 'Traphaco', category: 'Thuốc giảm đau', stock: 250, status: 'Còn hàng', statusColor: 'bg-green-100 text-green-800', imageUrl: 'https://via.placeholder.com/100x100.png/EBF4FF/76A9FA?text=P' },
-  { id: 'BER10', name: 'Berberin 10mg', manufacturer: 'DHG Pharma', category: 'Thuốc tiêu hóa', stock: 15, status: 'Sắp hết hàng', statusColor: 'bg-orange-100 text-orange-800', imageUrl: 'https://via.placeholder.com/100x100.png/FEF3C7/FBBF24?text=B' },
-  { id: 'VITC1000', name: 'Vitamin C 1000mg', manufacturer: 'DHG Pharma', category: 'Vitamin', stock: 0, status: 'Hết hàng', statusColor: 'bg-red-100 text-red-800', imageUrl: 'https://via.placeholder.com/100x100.png/ECFDF5/6EE7B7?text=V' },
-];
 
 function WarehouseManagementPage() {
-  const [products, setProducts] = useState(initialProducts);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  // Xóa dữ liệu mẫu, khởi tạo state là một mảng rỗng
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true); // Thêm state cho trạng thái tải
 
-  const handleDelete = (productId, productName) => {
+  // Dùng useEffect để gọi API khi component được render lần đầu
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/products');
+        const data = await response.json();
+        setProducts(data); // Cập nhật state với dữ liệu từ API
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách sản phẩm:", error);
+        alert("Không thể tải danh sách sản phẩm.");
+      } finally {
+        setLoading(false); // Dừng trạng thái tải
+      }
+    };
+
+    fetchProducts();
+  }, []); // Mảng rỗng đảm bảo useEffect chỉ chạy 1 lần
+  const handleDelete = async (productId, productName) => {
     if (window.confirm(`Bạn có chắc muốn xóa sản phẩm "${productName}" không?`)) {
-      setProducts(currentProducts => currentProducts.filter(p => p.id !== productId));
+      try {
+        const response = await fetch(`http://localhost:3000/api/products/${productId}`, {
+          method: 'DELETE',
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          alert(result.message);
+          // Cập nhật lại danh sách sản phẩm trên giao diện
+          setProducts(currentProducts => currentProducts.filter(p => p.id !== productId));
+        } else {
+          alert('Lỗi: ' + result.error);
+        }
+      } catch (error) {
+        alert('Lỗi kết nối đến server.');
+      }
     }
   };
+  if (loading) {
+    return <div className="p-8">Đang tải dữ liệu kho...</div>;
+  }
 
-  const filteredProducts = useMemo(() => {
-    return products
-      .filter(p => statusFilter ? p.status === statusFilter : true)
-      .filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-  }, [products, searchTerm, statusFilter]);
+  // Hàm get màu cho status
+  const getStatusColor = (status) => {
+    if (status === 'Còn hàng') return 'bg-green-100 text-green-800';
+    if (status === 'Sắp hết hàng') return 'bg-orange-100 text-orange-800';
+    if (status === 'Hết hàng') return 'bg-red-100 text-red-800';
+    return 'bg-gray-100 text-gray-800';
+  };
 
   return (
     <>
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Quản lý Kho</h1>
-          <p className="text-gray-600 mt-1">Theo dõi và quản lý số lượng tồn kho của các sản phẩm.</p>
-        </div>
-        <Link to="/admin/kho/them" className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
-          <FontAwesomeIcon icon={faPlus} />
-          <span>Thêm sản phẩm mới</span>
+        <h1 className="text-3xl font-bold text-gray-800">Quản lý Kho</h1>
+        <Link to="/admin/kho/them" className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+          <FontAwesomeIcon icon={faPlus} className="mr-2" />Thêm sản phẩm mới
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white p-6 rounded-2xl shadow-lg mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <input 
-            type="text" 
-            placeholder="Tìm theo Mã, Tên thuốc..." 
-            className="md:col-span-2 w-full px-4 py-2 border border-gray-300 rounded-lg"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-          <select 
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="Còn hàng">Còn hàng</option>
-            <option value="Sắp hết hàng">Sắp hết hàng</option>
-            <option value="Hết hàng">Hết hàng</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Products Table */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -80,25 +81,31 @@ function WarehouseManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <tr key={product.id} className="border-b hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
-                      <img src={product.imageUrl} alt={product.name} className="w-12 h-12 rounded-md object-cover" />
+                      <img src={product.hinh_anh} alt={product.ten_thuoc} className="w-12 h-12 rounded-md object-cover" />
                       <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-xs text-gray-500">{product.manufacturer}</p>
+                        <p className="font-medium text-gray-900">{product.ten_thuoc}</p>
+                        <p className="text-xs text-gray-500">{product.nha_san_xuat}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">{product.category}</td>
-                  <td className="px-6 py-4 font-semibold">{product.stock}</td>
-                  <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-medium rounded-full ${product.statusColor}`}>{product.status}</span></td>
+                  <td className="px-6 py-4">{product.danh_muc}</td>
+                  <td className="px-6 py-4 font-semibold">{product.so_luong_ton}</td>
+                  <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(product.trang_thai)}`}>{product.trang_thai}</span></td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center space-x-4 text-gray-500">
-                      <Link to={`/admin/kho/${product.id}`} className="hover:text-blue-600" title="Xem chi tiết lô hàng"><FontAwesomeIcon icon={faEye} /></Link>
-                      <Link to={`/admin/kho/sua/${product.id}`} className="hover:text-green-600" title="Sửa"><FontAwesomeIcon icon={faPencilAlt} /></Link>
-                      <button onClick={() => handleDelete(product.id, product.name)} className="hover:text-red-600" title="Xóa"><FontAwesomeIcon icon={faTrash} /></button>
+                      <Link to={`/admin/kho/${product.id}`} className="hover:text-blue-600"><FontAwesomeIcon icon={faEye} /></Link>
+                      <Link to={`/admin/kho/sua/${product.id}`} className="hover:text-green-600"><FontAwesomeIcon icon={faPencilAlt} /></Link>
+                      <button
+                        onClick={() => handleDelete(product.id, product.ten_thuoc)}
+                        className="hover:text-red-600"
+                        title="Xóa"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
                     </div>
                   </td>
                 </tr>
