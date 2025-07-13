@@ -24,6 +24,10 @@ import AddProductPage from './pages/admin/nhan-vien/AddProductPage.jsx';
 import ProductDetailAdminPage from './pages/admin/nhan-vien/ProductDetailAdminPage.jsx';
 import EditOrderPage from './pages/admin/nhan-vien/EditOrderPage.jsx';
 import EditProductPage from './pages/admin/nhan-vien/EditProductPage.jsx';
+import ConsultationPage from './pages/admin/nhan-vien/ConsultationPage.jsx';
+import GoodsReceiptIssuePage from './pages/admin/nhan-vien/GoodsReceiptIssuePage.jsx';
+import CreateReceiptPage from './pages/admin/nhan-vien/CreateReceiptPage.jsx';
+import CreateIssuePage from './pages/admin/nhan-vien/CreateIssuePage.jsx';
 // (Chúng ta sẽ import các trang admin khác ở đây khi tạo chúng)
 
 
@@ -78,10 +82,10 @@ const router = createBrowserRouter([
             path: "don-hang/:id",
             element: <OrderDetailPage />,
           },
-          { 
+          {
             path: "don-hang/sua/:id", // <-- Thêm route mới
-            element: <EditOrderPage /> 
-          }, 
+            element: <EditOrderPage />
+          },
           {
             path: "kho",
             element: <WarehouseManagementPage />
@@ -94,16 +98,27 @@ const router = createBrowserRouter([
             path: "kho/:id", // <-- Thêm route động mới
             element: <ProductDetailAdminPage />
           },
-          { 
+          {
             path: "kho/sua/:id", // <-- Thêm route mới
-            element: <EditProductPage /> 
-          }
-          // TODO: Thêm các route cho các trang quản trị khác ở đây
-          // Ví dụ:
-          // {
-          //   path: "don-hang",
-          //   element: <QuanLyDonHangPage />,
-          // },
+            element: <EditProductPage />
+          },
+          {
+            path: "tu-van", // <-- Thêm route mới
+            element: <ConsultationPage />
+          },
+          {
+            path: "phieu-nhap-xuat", // <-- Thêm route mới
+            element: <GoodsReceiptIssuePage />
+          },
+          {
+            path: "phieu-nhap/them", // <-- Thêm route mới
+            element: <CreateReceiptPage />
+          },
+          {
+            path: "phieu-xuat/them", // <-- Thêm route mới
+            element: <CreateIssuePage />
+          },
+
         ],
       },
     ],

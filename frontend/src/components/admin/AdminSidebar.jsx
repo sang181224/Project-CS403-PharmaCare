@@ -6,6 +6,9 @@ import {
     faTachometerAlt,
     faBox,
     faWarehouse,
+    faHeadset,
+    faFileInvoice,
+    faCog,
     faSignOutAlt,
     // Thêm các icon khác bạn muốn dùng ở đây
 } from '@fortawesome/free-solid-svg-icons';
@@ -35,11 +38,12 @@ function AdminSidebar() {
             </div>
             <nav className="p-4">
                 <ul className="space-y-2 list-none">
-                    {/* 3. Truyền icon đã import vào component NavItem */}
                     <AdminNavItem to="/admin/dashboard" icon={faTachometerAlt}>Tổng quan</AdminNavItem>
                     <AdminNavItem to="/admin/don-hang" icon={faBox}>Quản lý Đơn hàng</AdminNavItem>
                     <AdminNavItem to="/admin/kho" icon={faWarehouse}>Quản lý Kho</AdminNavItem>
-                    {/* Bạn có thể làm tương tự cho các mục menu còn lại */}
+                    <AdminNavItem to="/admin/tu-van" icon={faHeadset}>Tư vấn khách hàng</AdminNavItem>
+                    <AdminNavItem to="/admin/phieu-nhap-xuat" icon={faFileInvoice}>Phiếu nhập / xuất</AdminNavItem>
+                    <AdminNavItem to="/admin/cai-dat" icon={faCog}>Cài đặt Nhà thuốc</AdminNavItem>
                     <li>
                         <a href="#" className="flex items-center space-x-3 p-3 rounded-lg mt-8 border-t border-gray-700 pt-3 hover:bg-gray-700">
                             <FontAwesomeIcon icon={faSignOutAlt} className="fa-fw w-5 text-center" />
