@@ -350,6 +350,42 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
+// --- API TƯ VẤN ---
+app.get('/api/consultations', async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT * FROM yeu_cau_tu_van ORDER BY ngay_gui DESC");
+        res.status(200).json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API gửi phản hồi cho một yêu cầu tư vấn
+app.put('/api/consultations/:id/reply', async (req, res) => {
+    const { id } = req.params;
+    const { phanHoi } = req.body;
+
+    if (!phanHoi) {
+        return res.status(400).json({ error: 'Nội dung phản hồi không được để trống.' });
+    }
+
+    try {
+        const sql = `
+            UPDATE yeu_cau_tu_van 
+            SET phan_hoi = ?, trang_thai = 'Đã trả lời', ngay_tra_loi = CURRENT_TIMESTAMP 
+            WHERE id = ?
+        `;
+        const [result] = await pool.query(sql, [phanHoi, id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy yêu cầu tư vấn.' });
+        }
+
+        res.status(200).json({ message: 'Gửi phản hồi thành công!' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 // --- KHỞI ĐỘNG SERVER ---
 app.listen(PORT, () => {
     console.log(`Server PharmaCare đang chạy tại http://localhost:${PORT}`);
