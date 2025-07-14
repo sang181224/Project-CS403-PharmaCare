@@ -1,88 +1,114 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPrint, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 
-// Dữ liệu mẫu
-const sampleOrder = {
-    id: '#PC1258',
-    date: '10/07/2025',
-    status: 'Đang xử lý',
-    paymentMethod: 'Thanh toán khi nhận hàng (COD)',
-    customer: {
-        name: 'Nguyễn Thị Cẩm Tú',
-        email: 'tuntc@email.com',
-        phone: '0901 xxx xxx',
-        address: '456 Lê Duẩn, Phường Chính Gián, Quận Thanh Khê, TP. Đà Nẵng',
-    },
-    items: [
-        { id: 1, name: 'Paracetamol 500mg', quantity: 2, price: 15000, imageUrl: 'https://via.placeholder.com/100x100.png/EBF4FF/76A9FA?text=P' },
-        { id: 2, name: 'Vitamin C 1000mg', quantity: 1, price: 45000, imageUrl: 'https://via.placeholder.com/100x100.png/ECFDF5/6EE7B7?text=V' },
-    ],
-    subtotal: 75000,
-    shipping: 10000,
-    total: 85000,
+// Hàm lấy màu cho trạng thái
+const getStatusColor = (status) => {
+    if (status === 'Đã giao') return 'bg-green-100 text-green-800';
+    if (status === 'Đang xử lý') return 'bg-yellow-100 text-yellow-800';
+    if (status === 'Đang giao') return 'bg-blue-100 text-blue-800';
+    if (status === 'Đã hủy') return 'bg-red-100 text-red-800';
+    return 'bg-gray-100 text-gray-800';
 };
 
 function OrderDetailPage() {
-    const { id } = useParams(); // Lấy ID đơn hàng từ URL
+    const { id } = useParams();
     const [order, setOrder] = useState(null);
-    const [status, setStatus] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Trong thực tế, bạn sẽ fetch dữ liệu từ API dựa trên id
-        setOrder(sampleOrder);
-        setStatus(sampleOrder.status);
+        const fetchOrderDetail = async () => {
+            try {
+                const response = await fetch(`http://localhost:3000/api/orders/${id}`);
+                const data = await response.json();
+                if (response.ok) setOrder(data);
+                else throw new Error(data.error);
+            } catch (error) {
+                console.error("Lỗi:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchOrderDetail();
     }, [id]);
 
-    if (!order) {
-        return <div>Đang tải...</div>;
-    }
+    if (isLoading) return <div className="p-8">Đang tải...</div>;
+    if (!order) return <div className="p-8">Không tìm thấy đơn hàng.</div>;
 
     return (
         <>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
                 <div>
-                    <nav className="text-sm mb-2"><ol className="list-none p-0 inline-flex space-x-2"><li className="flex items-center"><Link to="/admin/don-hang" className="text-gray-500 hover:text-blue-600">Quản lý Đơn hàng</Link></li><li className="flex items-center"><i className="fas fa-chevron-right text-xs text-gray-400 mx-2"></i><span className="text-gray-800 font-medium">Chi tiết Đơn hàng {order.id}</span></li></ol></nav>
-                    <h1 className="text-3xl font-bold text-gray-800">Chi tiết Đơn hàng {order.id}</h1>
+                    <h1 className="text-3xl font-bold text-gray-800">Chi tiết Đơn hàng {order.ma_don_hang}</h1>
                 </div>
                 <div className="flex space-x-2 mt-4 sm:mt-0">
-                    <button className="bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-50"><i className="fas fa-print mr-2"></i>In hóa đơn</button>
-                    <button className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700"><i className="fas fa-save mr-2"></i>Lưu thay đổi</button>
+                    <button className="bg-white border text-gray-700 font-bold py-2 px-4 rounded-lg"><FontAwesomeIcon icon={faPrint} className="mr-2" />In hóa đơn</button>
+                    <Link to={`/admin/don-hang/sua/${order.id}`} className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+                        <FontAwesomeIcon icon={faPencilAlt} className="mr-2" />Sửa đơn hàng
+                    </Link>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Các sản phẩm trong đơn</h2>
-                    <table className="w-full text-left">
-                        <thead><tr className="border-b"><th className="py-2">Sản phẩm</th><th className="py-2 text-center">Số lượng</th><th className="py-2 text-right">Thành tiền</th></tr></thead>
-                        <tbody>
-                            {order.items.map(item => (
-                                <tr key={item.id} className="border-b">
-                                    <td className="py-4"><div className="flex items-center space-x-3"><img src={item.imageUrl} className="w-12 h-12 rounded-md" /><p className="font-medium">{item.name}</p></div></td>
-                                    <td className="py-4 text-center">{item.quantity}</td>
-                                    <td className="py-4 text-right font-semibold">{(item.quantity * item.price).toLocaleString('vi-VN')}đ</td>
+                    <h2 className="text-xl font-bold mb-4">Các sản phẩm trong đơn</h2>
+
+                    {/* ===== PHẦN HIỂN THỊ SẢN PHẨM BỊ THIẾU NẰM Ở ĐÂY ===== */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 text-sm">
+                                <tr>
+                                    <th className="py-2 px-4">Sản phẩm</th>
+                                    <th className="py-2 px-4 text-center">Số lượng</th>
+                                    <th className="py-2 px-4 text-right">Đơn giá</th>
+                                    <th className="py-2 px-4 text-right">Thành tiền</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                        <tfoot>
-                            <tr className="font-bold"><td colSpan="2" className="pt-6 text-right">Tổng cộng:</td><td className="pt-6 text-right text-xl text-blue-600">{order.total.toLocaleString('vi-VN')}đ</td></tr>
-                        </tfoot>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {order.items?.map(item => (
+                                    <tr key={item.id} className="border-b">
+                                        <td className="py-4 px-4">
+                                            <div className="flex items-center space-x-3">
+                                                <img src={item.hinh_anh || 'https://via.placeholder.com/100'} alt={item.ten_thuoc} className="w-12 h-12 rounded-md object-cover" />
+                                                <p className="font-medium">{item.ten_thuoc}</p>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-4 text-center">{item.so_luong}</td>
+                                        <td className="py-4 px-4 text-right">{Number(item.don_gia).toLocaleString('vi-VN')}đ</td>
+                                        <td className="py-4 px-4 text-right font-semibold">{Number(item.thanh_tien).toLocaleString('vi-VN')}đ</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot>
+                                <tr className="font-bold">
+                                    <td colSpan="3" className="pt-4 px-4 text-right">Tổng cộng:</td>
+                                    <td className="pt-4 px-4 text-right text-xl text-blue-600">{Number(order.tong_tien).toLocaleString('vi-VN')}đ</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
 
                 <div className="space-y-8">
                     <div className="bg-white p-6 rounded-2xl shadow-lg">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">Thông tin đơn hàng</h2>
+                        <h2 className="text-xl font-bold mb-4">Thông tin đơn hàng</h2>
                         <div className="space-y-3 text-sm">
-                            <div className="flex justify-between"><span className="text-gray-500">Ngày đặt:</span><span className="font-medium">{order.date}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-gray-500">Trạng thái:</span><select value={status} onChange={(e) => setStatus(e.target.value)} className="border border-gray-300 rounded-lg text-sm focus:ring-blue-500 py-1"><option>Đang xử lý</option><option>Đang giao</option><option>Đã giao</option><option>Đã hủy</option></select></div>
+                            <div className="flex justify-between"><span>Ngày đặt:</span><span className="font-medium">{new Date(order.ngay_dat).toLocaleString('vi-VN')}</span></div>
+                            <div className="flex justify-between items-center">
+                                <span>Trạng thái:</span>
+                                <span className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(order.trang_thai)}`}>
+                                    {order.trang_thai}
+                                </span>
+                            </div>
                         </div>
                     </div>
                     <div className="bg-white p-6 rounded-2xl shadow-lg">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4">Thông tin khách hàng</h2>
+                        <h2 className="text-xl font-bold mb-4">Thông tin khách hàng</h2>
                         <div className="space-y-2 text-sm">
-                            <p className="font-medium text-base text-gray-900">{order.customer.name}</p>
-                            <p className="text-gray-600">{order.customer.address}</p>
+                            <p className="font-medium text-base">{order.ten_khach_hang}</p>
+                            <p className="text-gray-600">{order.dia_chi_giao}</p>
+                            <p className="text-gray-600">{order.so_dien_thoai}</p>
                         </div>
                     </div>
                 </div>
