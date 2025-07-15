@@ -39,6 +39,7 @@ import EditEmployeePage from './pages/admin/quan-tri-vien/EditEmployeePage.jsx';
 import SupplierManagementPage from './pages/admin/quan-tri-vien/SupplierManagementPage.jsx';
 import AddSupplierPage from './pages/admin/quan-tri-vien/AddSupplierPage.jsx';
 import EditSupplierPage from './pages/admin/quan-tri-vien/EditSupplierPage.jsx';
+import Products from './pages/products/index.jsx';
 
 // --- Router cấu hình ---
 const router = createBrowserRouter([
@@ -52,6 +53,7 @@ const router = createBrowserRouter([
       { path: '/tim-kiem', element: <SearchPage /> },
       { path: '/san-pham/:id', element: <ProductDetailPage /> },
       { path: '/debug-login', element: <DebugLoginPage /> },
+      { path: '/product', element: <Products/> },
     ],
   },
   {
