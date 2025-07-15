@@ -39,6 +39,9 @@ import EditEmployeePage from './pages/admin/quan-tri-vien/EditEmployeePage.jsx';
 import SupplierManagementPage from './pages/admin/quan-tri-vien/SupplierManagementPage.jsx';
 import AddSupplierPage from './pages/admin/quan-tri-vien/AddSupplierPage.jsx';
 import EditSupplierPage from './pages/admin/quan-tri-vien/EditSupplierPage.jsx';
+import ReceiptDetailPage from './pages/admin/nhan-vien/ReceiptDetailPage.jsx';
+import IssueDetailPage from './pages/admin/nhan-vien/IssueDetailPage.jsx';
+import ReportPage from './pages/admin/quan-tri-vien/ReportPage.jsx';
 
 // --- Router cấu hình ---
 const router = createBrowserRouter([
@@ -63,7 +66,10 @@ const router = createBrowserRouter([
         children: [
           { path: 'dashboard', element: <DashboardPage /> },
           { path: 'dashboard-admin', element: <AdminDashboardPage /> },
-
+          
+          //Báo cáo
+          { path: "bao-cao", element: <ReportPage /> },
+          
           // Đơn hàng
           { path: 'don-hang', element: <OrderManagementPage /> },
           { path: 'don-hang/:id', element: <OrderDetailPage /> },
@@ -80,7 +86,9 @@ const router = createBrowserRouter([
           { path: 'tu-van', element: <ConsultationPage /> },
           { path: 'phieu-nhap-xuat', element: <GoodsReceiptIssuePage /> },
           { path: 'phieu-nhap/them', element: <CreateReceiptPage /> },
+          { path: "phieu-nhap/:id", element: <ReceiptDetailPage /> },
           { path: 'phieu-xuat/them', element: <CreateIssuePage /> },
+          { path: "phieu-xuat/:id", element: <IssueDetailPage /> },
 
           // Nhân viên
           { path: 'nhan-vien', element: <EmployeeManagementPage /> },
@@ -91,6 +99,8 @@ const router = createBrowserRouter([
           { path: 'nha-cung-cap', element: <SupplierManagementPage /> },
           { path: 'nha-cung-cap/them', element: <AddSupplierPage /> },
           { path: 'nha-cung-cap/sua/:id', element: <EditSupplierPage /> },
+
+          
         ],
       },
     ],

@@ -23,7 +23,7 @@ if (!fs.existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 
-// --- CẤU HÌNH DATABASE (SỬ DỤNG CONNECTION POOL) ---
+// --- CẤU HÌNH DATABASE (SỬ DỤNG CONNECTION POOL VÀ PROMISE) ---
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
@@ -48,6 +48,7 @@ const imageFileFilter = (req, file, cb) => {
 };
 const upload = multer({ storage: storage, fileFilter: imageFileFilter });
 
+
 // --- MIDDLEWARE XÁC THỰC TOKEN ---
 const checkAuth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -59,6 +60,14 @@ const checkAuth = (req, res, next) => {
         req.user = user;
         next();
     });
+};
+
+const checkRole = (allowedRoles) => (req, res, next) => {
+    if (req.user && allowedRoles.includes(req.user.vaiTro)) {
+        next();
+    } else {
+        res.status(403).json({ error: 'Không có quyền truy cập.' });
+    }
 };
 // =================================================================
 // ---                       CÁC API ROUTE                       ---
@@ -101,9 +110,25 @@ app.post('/api/login', async (req, res) => {
 
 // --- PRODUCT & BATCH ROUTES ---
 // --- Product Routes (Quản lý Kho) ---
+// API lấy danh sách sản phẩm (có tìm kiếm)
 app.get('/api/products', async (req, res) => {
     try {
-        const [rows] = await pool.query("SELECT * FROM products ORDER BY id DESC");
+        // Lấy từ khóa tìm kiếm từ query parameter, ví dụ: /api/products?search=para
+        const searchTerm = req.query.search || '';
+
+        let sql = "SELECT * FROM products";
+        const params = [];
+
+        if (searchTerm) {
+            sql += " WHERE ten_thuoc LIKE ? OR ma_thuoc LIKE ?";
+            // Thêm dấu % để tìm kiếm gần đúng
+            params.push(`%${searchTerm}%`);
+            params.push(`%${searchTerm}%`);
+        }
+
+        sql += " ORDER BY id DESC";
+
+        const [rows] = await pool.query(sql, params);
         res.status(200).json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -122,27 +147,41 @@ app.get('/api/products/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-// === API THÊM SẢN PHẨM MỚI (BAO GỒM LÔ HÀNG ĐẦU TIÊN) ===
+// API Thêm sản phẩm mới (BAO GỒM LÔ HÀNG ĐẦU TIÊN)
 app.post('/api/products', upload.single('hinh_anh'), async (req, res) => {
     const { ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, ma_lo_thuoc, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho } = req.body;
     const finalImagePath = req.file ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` : 'https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=No+Image';
 
+    // Kiểm tra các trường bắt buộc
+    if (!ten_thuoc || !ma_thuoc || !gia_ban || !ma_lo_thuoc || !so_luong_nhap) {
+        return res.status(400).json({ error: 'Các trường thông tin sản phẩm và lô hàng đầu tiên là bắt buộc.' });
+    }
+
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
+
+        // 1. Thêm sản phẩm vào bảng `products`
         const productSql = `INSERT INTO products (ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, hinh_anh, so_luong_ton, trang_thai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        // Tổng tồn kho ban đầu chính là số lượng của lô hàng đầu tiên
         const productParams = [ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, finalImagePath, so_luong_nhap, 'Còn hàng'];
         const [productResult] = await connection.query(productSql, productParams);
-
         const newProductId = productResult.insertId;
+
+        // 2. Thêm lô hàng đầu tiên vào bảng `lo_thuoc`
         const batchSql = `INSERT INTO lo_thuoc (id_san_pham, ma_lo_thuoc, so_luong_nhap, so_luong_con, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
         const batchParams = [newProductId, ma_lo_thuoc, so_luong_nhap, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho];
         await connection.query(batchSql, batchParams);
 
         await connection.commit();
-        res.status(201).json({ message: 'Thêm sản phẩm và lô hàng thành công!', productId: newProductId });
+        res.status(201).json({ message: 'Thêm sản phẩm và lô hàng đầu tiên thành công!', productId: newProductId });
+
     } catch (error) {
         await connection.rollback();
+        // Bắt lỗi trùng mã thuốc
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Mã thuốc hoặc mã lô đã tồn tại.' });
+        }
         res.status(500).json({ error: error.message });
     } finally {
         connection.release();
@@ -382,6 +421,452 @@ app.put('/api/consultations/:id/reply', async (req, res) => {
         }
 
         res.status(200).json({ message: 'Gửi phản hồi thành công!' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --- GOODS RECEIPT/ISSUE ROUTES ---
+
+// API lấy danh sách Phiếu Nhập Kho
+app.get('/api/receipts', async (req, res) => {
+    try {
+        const sql = `
+            SELECT pn.*, u.hoTen as ten_nhan_vien
+            FROM phieu_nhap pn
+            LEFT JOIN users u ON pn.id_nhan_vien = u.id
+            ORDER BY pn.ngay_nhap DESC
+        `;
+        const [rows] = await pool.query(sql);
+        res.status(200).json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API lấy chi tiết một Phiếu Nhập Kho
+app.get('/api/receipts/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Lấy thông tin chung của phiếu nhập
+        const receiptSql = `
+            SELECT pn.*, ncc.ten_nha_cung_cap, u.hoTen as ten_nhan_vien
+            FROM phieu_nhap pn
+            LEFT JOIN nha_cung_cap ncc ON pn.id_nha_cung_cap = ncc.id
+            LEFT JOIN users u ON pn.id_nhan_vien = u.id
+            WHERE pn.id = ?
+        `;
+        const [receiptResult] = await pool.query(receiptSql, [id]);
+
+        if (receiptResult.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy phiếu nhập.' });
+        }
+        const receiptData = receiptResult[0];
+
+        // Lấy danh sách chi tiết các sản phẩm/lô hàng trong phiếu nhập
+        const itemsSql = `
+            SELECT ctpn.*, lt.ma_lo_thuoc, p.ten_thuoc
+            FROM chi_tiet_phieu_nhap ctpn
+            JOIN lo_thuoc lt ON ctpn.id_lo_thuoc = lt.id
+            JOIN products p ON lt.id_san_pham = p.id
+            WHERE ctpn.id_phieu_nhap = ?
+        `;
+        const [itemsResult] = await pool.query(itemsSql, [id]);
+
+        receiptData.items = itemsResult;
+        res.status(200).json(receiptData);
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API Tạo một Phiếu Nhập Kho mới
+// API Tạo một Phiếu Nhập Kho mới (Hoàn chỉnh)
+app.post('/api/receipts', async (req, res) => {
+    const { receiptInfo, items } = req.body;
+    const userId = 1; // Giả sử nhân viên đăng nhập có id = 1
+
+    if (!receiptInfo || !items || items.length === 0) {
+        return res.status(400).json({ error: 'Thông tin phiếu và sản phẩm không được để trống.' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // --- Logic tạo mã phiếu nhập ---
+        const today = new Date();
+        const datePrefix = today.getFullYear().toString().slice(-2) + ('0' + (today.getMonth() + 1)).slice(-2) + ('0' + today.getDate()).slice(-2);
+        const [lastReceipt] = await connection.query("SELECT ma_phieu_nhap FROM phieu_nhap WHERE ma_phieu_nhap LIKE ? ORDER BY id DESC LIMIT 1", [`PN-${datePrefix}-%`]);
+        let newSequence = 1;
+        if (lastReceipt.length > 0) {
+            newSequence = parseInt(lastReceipt[0].ma_phieu_nhap.split('-')[2]) + 1;
+        }
+        const receiptCode = `PN-${datePrefix}-${newSequence.toString().padStart(4, '0')}`;
+
+        const totalAmount = items.reduce((sum, item) => sum + (Number(item.so_luong_nhap || 0) * Number(item.don_gia_nhap || 0)), 0);
+
+        // 1. Tạo phiếu nhập chính
+        const receiptSql = `INSERT INTO phieu_nhap (ma_phieu_nhap, id_nha_cung_cap, id_nhan_vien, ngay_nhap, tong_tien, trang_thai, ghi_chu) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        const [receiptResult] = await connection.query(receiptSql, [receiptCode, receiptInfo.id_nha_cung_cap, userId, receiptInfo.ngay_nhap, totalAmount, 'Hoàn thành', receiptInfo.ghi_chu]);
+        const newReceiptId = receiptResult.insertId;
+
+        // 2. Lặp qua từng sản phẩm để xử lý
+        for (const item of items) {
+            // 2a. Thêm lô thuốc mới
+            const batchSql = `INSERT INTO lo_thuoc (id_san_pham, ma_lo_thuoc, so_luong_nhap, so_luong_con, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+            const [batchResult] = await connection.query(batchSql, [item.id_san_pham, item.ma_lo_thuoc, item.so_luong_nhap, item.so_luong_nhap, item.don_gia_nhap, item.ngay_san_xuat, item.han_su_dung, item.vi_tri_kho]);
+            const newBatchId = batchResult.insertId;
+
+            // 2b. Thêm chi tiết phiếu nhập
+            const detailSql = `INSERT INTO chi_tiet_phieu_nhap (id_phieu_nhap, id_lo_thuoc, so_luong_nhap, don_gia_nhap, thanh_tien) VALUES (?, ?, ?, ?, ?)`;
+            await connection.query(detailSql, [newReceiptId, newBatchId, item.so_luong_nhap, item.don_gia_nhap, item.thanh_tien]);
+
+            // 2c. Cập nhật tồn kho sản phẩm
+            await connection.query(`UPDATE products SET so_luong_ton = so_luong_ton + ? WHERE id = ?`, [item.so_luong_nhap, item.id_san_pham]);
+        }
+
+        await connection.commit();
+        res.status(201).json({ message: `Tạo phiếu nhập ${receiptCode} thành công!`, receiptId: newReceiptId });
+
+    } catch (error) {
+        await connection.rollback();
+        res.status(500).json({ error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
+// API lấy danh sách Phiếu Xuất Kho
+app.get('/api/issues', async (req, res) => {
+    try {
+        const sql = `
+            SELECT px.*, u.hoTen as ten_nhan_vien, dh.ma_don_hang
+            FROM phieu_xuat px
+            LEFT JOIN users u ON px.id_nhan_vien = u.id
+            LEFT JOIN don_hang dh ON px.id_don_hang = dh.id
+            ORDER BY px.ngay_xuat DESC
+        `;
+        const [rows] = await pool.query(sql);
+        res.status(200).json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API lấy chi tiết một Phiếu Xuất Kho
+app.get('/api/issues/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Lấy thông tin chung của phiếu xuất
+        const issueSql = `
+            SELECT px.*, u.hoTen as ten_nhan_vien, dh.ma_don_hang
+            FROM phieu_xuat px
+            LEFT JOIN users u ON px.id_nhan_vien = u.id
+            LEFT JOIN don_hang dh ON px.id_don_hang = dh.id
+            WHERE px.id = ?
+        `;
+        const [issueResult] = await pool.query(issueSql, [id]);
+
+        if (issueResult.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy phiếu xuất.' });
+        }
+        const issueData = issueResult[0];
+
+        // Lấy danh sách chi tiết các sản phẩm/lô hàng trong phiếu xuất
+        const itemsSql = `
+            SELECT ctpx.*, lt.ma_lo_thuoc, p.ten_thuoc
+            FROM chi_tiet_phieu_xuat ctpx
+            JOIN lo_thuoc lt ON ctpx.id_lo_thuoc = lt.id
+            JOIN products p ON lt.id_san_pham = p.id
+            WHERE ctpx.id_phieu_xuat = ?
+        `;
+        const [itemsResult] = await pool.query(itemsSql, [id]);
+
+        issueData.items = itemsResult;
+        res.status(200).json(issueData);
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API Tạo một Phiếu Xuất Kho mới
+app.post('/api/issues', async (req, res) => {
+    const { issueInfo, items } = req.body;
+    const userId = 1; // Giả sử nhân viên đăng nhập có id = 1
+
+    if (!issueInfo || !items || items.length === 0) {
+        return res.status(400).json({ error: 'Thông tin phiếu và sản phẩm không được để trống.' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // --- Logic tạo mã phiếu xuất ---
+        const today = new Date();
+        const datePrefix = today.getFullYear().toString().slice(-2) + ('0' + (today.getMonth() + 1)).slice(-2) + ('0' + today.getDate()).slice(-2);
+        const [lastIssue] = await connection.query("SELECT ma_phieu_xuat FROM phieu_xuat WHERE ma_phieu_xuat LIKE ? ORDER BY id DESC LIMIT 1", [`PX-${datePrefix}-%`]);
+        let newSequence = 1;
+        if (lastIssue.length > 0) {
+            newSequence = parseInt(lastIssue[0].ma_phieu_xuat.split('-')[2]) + 1;
+        }
+        const issueCode = `PX-${datePrefix}-${newSequence.toString().padStart(4, '0')}`;
+
+        // 1. Tạo phiếu xuất chính
+        const issueSql = `INSERT INTO phieu_xuat (ma_phieu_xuat, id_don_hang, id_nhan_vien, ngay_xuat, ly_do_xuat) VALUES (?, ?, ?, ?, ?)`;
+        const [issueResult] = await connection.query(issueSql, [issueCode, issueInfo.id_don_hang || null, userId, new Date(), issueInfo.ly_do_xuat]);
+        const newIssueId = issueResult.insertId;
+
+        // 2. Lặp qua từng sản phẩm để xử lý
+        for (const item of items) {
+            // Kiểm tra số lượng tồn của lô
+            const [batchRows] = await connection.query('SELECT so_luong_con FROM lo_thuoc WHERE id = ?', [item.id_lo_thuoc]);
+            if (batchRows.length === 0 || batchRows[0].so_luong_con < item.so_luong_xuat) {
+                throw new Error(`Lô ${item.ma_lo_thuoc} không đủ số lượng tồn kho.`);
+            }
+
+            // 2a. Thêm chi tiết phiếu xuất
+            const detailSql = `INSERT INTO chi_tiet_phieu_xuat (id_phieu_xuat, id_lo_thuoc, so_luong_xuat) VALUES (?, ?, ?)`;
+            await connection.query(detailSql, [newIssueId, item.id_lo_thuoc, item.so_luong_xuat]);
+
+            // 2b. Cập nhật (trừ) số lượng tồn trong lô
+            await connection.query(`UPDATE lo_thuoc SET so_luong_con = so_luong_con - ? WHERE id = ?`, [item.so_luong_xuat, item.id_lo_thuoc]);
+
+            // 2c. Cập nhật (trừ) tổng tồn kho sản phẩm
+            await connection.query(`UPDATE products SET so_luong_ton = so_luong_ton - ? WHERE id = ?`, [item.so_luong_xuat, item.id_san_pham]);
+        }
+
+        await connection.commit();
+        res.status(201).json({ message: `Tạo phiếu xuất ${issueCode} thành công!` });
+
+    } catch (error) {
+        await connection.rollback();
+        res.status(500).json({ error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+// --- API nhà cung cấp ---
+app.get('/api/suppliers', async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT id, ten_nha_cung_cap FROM nha_cung_cap ORDER BY ten_nha_cung_cap ASC");
+        res.status(200).json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --- ADMIN ROUTES ---
+// API đặc biệt chỉ dành cho debug - tạo token thật cho vai trò được yêu cầu
+app.post('/api/debug/login-as-role', (req, res) => {
+    const { role } = req.body;
+    let userPayload = {};
+
+    if (role === 'thanh_vien') {
+        userPayload = { id: 100, hoTen: 'Thành Viên Test', vaiTro: 'thanh_vien' };
+    } else if (role === 'nhan_vien') {
+        userPayload = { id: 200, hoTen: 'Nhân Viên Test', vaiTro: 'nhan_vien' };
+    } else if (role === 'quan_tri_vien') {
+        userPayload = { id: 1, hoTen: 'Admin Test', vaiTro: 'quan_tri_vien' };
+    } else {
+        return res.status(400).json({ error: 'Vai trò không hợp lệ.' });
+    }
+
+    const token = jwt.sign(userPayload, SECRET_KEY, { expiresIn: '1h' });
+    res.status(200).json({
+        message: `Tạo token debug thành công cho vai trò ${role}`,
+        token: token,
+        user: userPayload
+    });
+});
+// API lấy danh sách nhân viên (Bảo vệ theo vai trò)
+// API lấy danh sách nhân viên (Bảo vệ theo vai trò)
+app.get('/api/admin/employees', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    try {
+        // THÊM `trang_thai` VÀO CÂU LỆNH SELECT Ở ĐÂY
+        const sql = "SELECT id, hoTen, email, vaiTro, ngayTao, trang_thai FROM users WHERE vaiTro != 'thanh_vien' ORDER BY id DESC";
+
+        const [rows] = await pool.query(sql);
+        res.status(200).json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API Thêm nhân viên mới (chỉ dành cho Admin)
+app.post('/api/admin/employees', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    const { hoTen, email, matKhau, vaiTro } = req.body;
+
+    if (!hoTen || !email || !matKhau || !vaiTro) {
+        return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin.' });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(matKhau, 10);
+        const sql = `INSERT INTO users (hoTen, email, matKhau, vaiTro, trang_thai) VALUES (?, ?, ?, ?, 'hoat_dong')`;
+
+        await pool.query(sql, [hoTen, email, hashedPassword, vaiTro]);
+
+        res.status(201).json({ message: `Tạo tài khoản cho nhân viên ${hoTen} thành công!` });
+
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Email này đã được sử dụng.' });
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API lấy chi tiết một nhân viên
+app.get('/api/admin/employees/:id', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        // THÊM `trang_thai` VÀO CÂU LỆNH SELECT Ở ĐÂY
+        const sql = "SELECT id, hoTen, email, vaiTro, trang_thai FROM users WHERE id = ?";
+        
+        const [rows] = await pool.query(sql, [id]);
+        
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy nhân viên.' });
+        }
+        
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API Cập nhật thông tin nhân viên
+app.put('/api/admin/employees/:id', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { hoTen, vaiTro } = req.body;
+
+        if (!hoTen || !vaiTro) {
+            return res.status(400).json({ error: 'Thông tin không được để trống.' });
+        }
+
+        const sql = "UPDATE users SET hoTen = ?, vaiTro = ? WHERE id = ?";
+        const [result] = await pool.query(sql, [hoTen, vaiTro, id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy nhân viên.' });
+        }
+        res.status(200).json({ message: 'Cập nhật thông tin nhân viên thành công!' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API Cập nhật trạng thái (khóa/mở khóa) của nhân viên
+app.put('/api/admin/employees/:id/status', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { trang_thai } = req.body; // <-- SỬA LẠI TỪ 'status' THÀNH 'trang_thai'
+
+        if (!trang_thai) {
+            return res.status(400).json({ error: 'Trạng thái mới là bắt buộc.' });
+        }
+
+        const sql = "UPDATE users SET trang_thai = ? WHERE id = ?";
+        const [result] = await pool.query(sql, [trang_thai, id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy nhân viên.' });
+        }
+        res.status(200).json({ message: `Cập nhật trạng thái nhân viên thành công!` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API lấy danh sách Nhà cung cấp
+app.get('/api/admin/suppliers', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT * FROM nha_cung_cap ORDER BY id DESC");
+        res.status(200).json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API Thêm Nhà cung cấp mới (chỉ dành cho Admin)
+app.post('/api/admin/suppliers', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    const { ten_nha_cung_cap, dia_chi, so_dien_thoai, email, nguoi_lien_lac } = req.body;
+    if (!ten_nha_cung_cap) {
+        return res.status(400).json({ error: 'Tên nhà cung cấp là bắt buộc.' });
+    }
+    try {
+        const sql = `INSERT INTO nha_cung_cap (ten_nha_cung_cap, dia_chi, so_dien_thoai, email, nguoi_lien_lac) VALUES (?, ?, ?, ?, ?)`;
+        const params = [ten_nha_cung_cap, dia_chi, so_dien_thoai, email, nguoi_lien_lac];
+        const [result] = await pool.query(sql, params);
+        res.status(201).json({ message: 'Thêm nhà cung cấp thành công!', supplierId: result.insertId });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API lấy chi tiết một nhà cung cấp
+app.get('/api/admin/suppliers/:id', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT * FROM nha_cung_cap WHERE id = ?", [req.params.id]);
+        if (rows.length === 0) return res.status(404).json({ error: 'Không tìm thấy nhà cung cấp.' });
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API Cập nhật nhà cung cấp
+app.put('/api/admin/suppliers/:id', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    const { ten_nha_cung_cap, dia_chi, so_dien_thoai, email, nguoi_lien_lac } = req.body;
+    if (!ten_nha_cung_cap) return res.status(400).json({ error: 'Tên nhà cung cấp là bắt buộc.' });
+
+    try {
+        const sql = `UPDATE nha_cung_cap SET ten_nha_cung_cap = ?, dia_chi = ?, so_dien_thoai = ?, email = ?, nguoi_lien_lac = ? WHERE id = ?`;
+        const params = [ten_nha_cung_cap, dia_chi, so_dien_thoai, email, nguoi_lien_lac, req.params.id];
+        const [result] = await pool.query(sql, params);
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy nhà cung cấp.' });
+        res.status(200).json({ message: 'Cập nhật nhà cung cấp thành công!' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API Xóa nhà cung cấp
+app.delete('/api/admin/suppliers/:id', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    try {
+        const [result] = await pool.query("DELETE FROM nha_cung_cap WHERE id = ?", [req.params.id]);
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Không tìm thấy nhà cung cấp.' });
+        res.status(200).json({ message: 'Xóa nhà cung cấp thành công!' });
+    } catch (error) {
+        // Bắt lỗi khóa ngoại nếu nhà cung cấp đã có phiếu nhập
+        if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+            return res.status(400).json({ error: 'Không thể xóa nhà cung cấp đã có phiếu nhập. Bạn cần xóa các phiếu nhập liên quan trước.' });
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+// API Báo cáo doanh thu theo tháng
+app.get('/api/reports/revenue-by-month', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+    try {
+        const sql = `
+            SELECT 
+                MONTH(ngay_dat) as month,
+                SUM(tong_tien) as totalRevenue
+            FROM don_hang
+            WHERE YEAR(ngay_dat) = YEAR(CURDATE()) AND trang_thai = 'Đã giao'
+            GROUP BY MONTH(ngay_dat)
+            ORDER BY month ASC;
+        `;
+        const [rows] = await pool.query(sql);
+        res.status(200).json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

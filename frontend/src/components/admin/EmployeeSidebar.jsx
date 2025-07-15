@@ -22,7 +22,6 @@ function EmployeeSidebar({ onLogout }) {
                     <NavItem to="/admin/kho" icon={faWarehouse}>Quản lý Kho</NavItem>
                     <NavItem to="/admin/tu-van" icon={faHeadset}>Tư vấn khách hàng</NavItem>
                     <NavItem to="/admin/phieu-nhap-xuat" icon={faFileInvoice}>Phiếu nhập / xuất</NavItem>
-                    <NavItem to="/admin/cai-dat" icon={faCog}>Cài đặt Nhà thuốc</NavItem>
                 </ul>
             </nav>
             <div className="p-4 border-t border-gray-700">

@@ -1,40 +1,143 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 function CreateIssuePage() {
     const navigate = useNavigate();
+    const [products, setProducts] = useState([]); // Danh sách tất cả sản phẩm để chọn
+    const [items, setItems] = useState([]); // Danh sách các dòng trong phiếu xuất
+    const [issueInfo, setIssueInfo] = useState({
+        ly_do_xuat: 'Xuất bán cho khách',
+        id_don_hang: ''
+    });
 
-    const handleSubmit = (e) => {
+    // Tải danh sách tất cả sản phẩm khi trang được mở
+    useEffect(() => {
+        const fetchProducts = async () => {
+            const res = await fetch('http://localhost:3000/api/products');
+            const data = await res.json();
+            if (res.ok) setProducts(data.filter(p => p.so_luong_ton > 0));
+        };
+        fetchProducts();
+    }, []);
+
+    const handleAddItem = () => {
+        setItems([...items, {
+            tempId: Date.now(),
+            productId: '',
+            productName: '',
+            batchId: '',
+            quantity: 1,
+            availableBatches: [], // Mảng chứa các lô của sản phẩm được chọn
+        }]);
+    };
+
+    // --- HÀM QUAN TRỌNG ĐỂ TẢI LÔ THUỐC ---
+    const handleProductSelect = async (index, productId) => {
+        const newItems = [...items];
+        const currentItem = newItems[index];
+        const product = products.find(p => p.id === parseInt(productId));
+
+        currentItem.productId = productId;
+        currentItem.productName = product?.ten_thuoc || '';
+        currentItem.availableBatches = []; // Xóa danh sách lô cũ
+        currentItem.batchId = ''; // Reset lựa chọn lô
+
+        if (productId) {
+            try {
+                // Khi chọn sản phẩm, gọi API để lấy chi tiết và các lô của nó
+                const res = await fetch(`http://localhost:3000/api/products/${productId}`);
+                const data = await res.json();
+                if (res.ok) {
+                    currentItem.availableBatches = data.batches.filter(b => b.so_luong_con > 0);
+                }
+            } catch (error) {
+                console.error("Lỗi tải lô thuốc:", error);
+            }
+        }
+        setItems(newItems);
+    };
+
+    const handleItemChange = (index, field, value) => {
+        const newItems = [...items];
+        newItems[index][field] = value;
+        setItems(newItems);
+    };
+
+    const handleRemoveItem = (index) => {
+        setItems(items.filter((_, i) => i !== index));
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        alert('Tạo phiếu xuất thành công!');
-        navigate('/admin/phieu-nhap-xuat');
+        const formattedItems = items.map(item => ({
+            id_san_pham: item.productId,
+            id_lo_thuoc: item.batchId,
+            so_luong_xuat: item.quantity,
+        }));
+
+        try {
+            const response = await fetch('http://localhost:3000/api/issues', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+                body: JSON.stringify({ issueInfo, items: formattedItems })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message);
+                navigate('/admin/phieu-nhap-xuat');
+            } else {
+                alert('Lỗi: ' + result.error);
+            }
+        } catch (error) {
+            alert('Lỗi kết nối.');
+        }
     };
 
     return (
         <>
-            <div className="mb-8">
-                <nav className="text-sm mb-2"><ol className="list-none p-0 inline-flex space-x-2"><li className="flex items-center"><Link to="/admin/phieu-nhap-xuat" className="text-gray-500 hover:text-blue-600">Phiếu nhập / xuất</Link></li><li className="flex items-center"><i className="fas fa-chevron-right text-xs text-gray-400 mx-2"></i><span className="text-gray-800 font-medium">Tạo Phiếu Xuất Kho</span></li></ol></nav>
-                <h1 className="text-3xl font-bold text-gray-800">Tạo Phiếu Xuất Kho</h1>
-            </div>
-
+            <h1 className="text-3xl font-bold text-gray-800 mb-8">Tạo Phiếu Xuất Kho</h1>
             <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-lg">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 pb-8 border-b">
-                    <div><label className="block text-sm font-medium">Đơn hàng liên quan</label><input type="text" placeholder="Nhập mã đơn hàng #PC..." className="w-full mt-1 px-4 py-2 border rounded-lg" /></div>
-                    <div><label className="block text-sm font-medium">Lý do xuất</label><select className="w-full mt-1 px-4 py-2 border rounded-lg"><option>Xuất bán cho khách</option><option>Trả lại nhà cung cấp</option><option>Xuất hủy</option></select></div>
-                    <div><label className="block text-sm font-medium">Ngày xuất</label><input type="date" className="w-full mt-1 px-4 py-2 border rounded-lg text-gray-500" /></div>
+                {/* ... Phần thông tin chung ... */}
+
+                <div className="border-t pt-6 mt-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold">Chi tiết hàng hóa xuất</h3>
+                        <button type="button" onClick={handleAddItem} className="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg">
+                            <FontAwesomeIcon icon={faPlus} className="mr-2" />Thêm sản phẩm
+                        </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50"><tr><th className="p-2 w-[30%]">Sản phẩm</th><th className="p-2 w-[40%]">Chọn Lô (Tồn kho, HSD)</th><th className="p-2">SL Xuất</th><th></th></tr></thead>
+                            <tbody>
+                                {items.map((item, index) => (
+                                    <tr key={item.tempId} className="border-b">
+                                        <td className="p-2">
+                                            <select value={item.productId} onChange={(e) => handleProductSelect(index, e.target.value)} className="w-full p-2 border rounded-lg bg-white">
+                                                <option value="">-- Chọn sản phẩm --</option>
+                                                {products.map(p => <option key={p.id} value={p.id}>{p.ten_thuoc}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="p-2">
+                                            <select value={item.batchId} onChange={(e) => handleItemChange(index, 'batchId', e.target.value)} className="w-full p-2 border rounded-lg bg-white" required disabled={item.availableBatches.length === 0}>
+                                                <option value="">-- Chọn lô --</option>
+                                                {item.availableBatches.map(b => <option key={b.id} value={b.id}>
+                                                    {b.ma_lo_thuoc} (Tồn: {b.so_luong_con}, HSD: {new Date(b.han_su_dung).toLocaleDateString('vi-VN')})
+                                                </option>)}
+                                            </select>
+                                        </td>
+                                        <td className="p-2"><input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-24 p-2 border rounded" required /></td>
+                                        <td className="p-2 text-center"><button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700" title="Xóa dòng"><FontAwesomeIcon icon={faTrash} /></button></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-
-                <div className="mb-8"><h3 className="text-lg font-bold">Thêm sản phẩm vào phiếu xuất</h3><div className="p-4 bg-gray-50 rounded-lg mt-2 grid grid-cols-1 md:grid-cols-4 gap-4 items-end"><div className="md:col-span-2"><label className="text-sm">Tìm sản phẩm</label><input type="text" className="w-full mt-1 px-4 py-2 border rounded-lg" /></div><div><label className="text-sm">Chọn Lô xuất</label><select className="w-full mt-1 px-4 py-2 border rounded-lg"><option>L250710A (Tồn: 150)</option></select></div><div><label className="text-sm">Số lượng</label><input type="number" defaultValue="1" className="w-full mt-1 px-4 py-2 border rounded-lg" /></div></div></div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50"><tr><th className="px-6 py-3">Sản phẩm</th><th className="px-6 py-3">Mã Lô</th><th className="px-6 py-3">Số lượng xuất</th><th></th></tr></thead>
-                        <tbody><tr className="border-b"><td className="px-6 py-4 font-medium">Paracetamol 500mg</td><td className="px-6 py-4">L250710A</td><td className="px-6 py-4">2</td><td className="px-6 py-4 text-center"><button type="button" className="text-red-500"><i className="fas fa-trash"></i></button></td></tr></tbody>
-                    </table>
-                </div>
-
-                <div className="pt-8 mt-8 border-t flex justify-end space-x-4">
-                    <Link to="/admin/phieu-nhap-xuat" className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg">Hủy bỏ</Link>
+                <div className="pt-8 mt-8 border-t flex justify-end">
                     <button type="submit" className="bg-green-600 text-white font-bold py-3 px-5 rounded-lg">Hoàn tất & Xuất kho</button>
                 </div>
             </form>

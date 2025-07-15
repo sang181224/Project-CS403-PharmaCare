@@ -1,65 +1,59 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 function AddSupplierPage() {
     const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        ten_nha_cung_cap: '',
+        dia_chi: '',
+        so_dien_thoai: '',
+        email: '',
+        nguoi_lien_lac: ''
+    });
 
-    const handleSubmit = (e) => {
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        alert('Thêm nhà cung cấp mới thành công!');
-        navigate('/admin/nha-cung-cap'); // Quay về trang danh sách
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch('http://localhost:3000/api/admin/suppliers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(formData)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message);
+                navigate('/admin/nha-cung-cap');
+            } else {
+                alert('Lỗi: ' + result.error);
+            }
+        } catch (error) {
+            alert('Lỗi kết nối đến server.');
+        }
     };
 
     return (
         <>
-            {/* Page Header */}
-            <div className="mb-8">
-                <nav className="text-sm mb-2" aria-label="Breadcrumb">
-                    <ol className="list-none p-0 inline-flex space-x-2">
-                        <li className="flex items-center">
-                            <Link to="/admin/nha-cung-cap" className="text-gray-500 hover:text-purple-600">Quản lý Nhà cung cấp</Link>
-                        </li>
-                        <li className="flex items-center">
-                            <i className="fas fa-chevron-right text-xs text-gray-400 mx-2"></i>
-                            <span className="text-gray-800 font-medium">Thêm nhà cung cấp</span>
-                        </li>
-                    </ol>
-                </nav>
-                <h1 className="text-3xl font-bold text-gray-800">Thêm nhà cung cấp mới</h1>
-            </div>
-
-            {/* Form */}
+            <h1 className="text-3xl font-bold text-gray-800 mb-8">Thêm Nhà cung cấp mới</h1>
             <div className="bg-white p-8 rounded-2xl shadow-lg max-w-4xl mx-auto">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label htmlFor="ten-ncc" className="block text-sm font-medium text-gray-700">Tên Nhà cung cấp</label>
-                        <input type="text" id="ten-ncc" className="w-full mt-1 px-4 py-2 border rounded-lg" required />
-                    </div>
-                    <div>
-                        <label htmlFor="dia-chi" className="block text-sm font-medium text-gray-700">Địa chỉ</label>
-                        <input type="text" id="dia-chi" className="w-full mt-1 px-4 py-2 border rounded-lg" />
-                    </div>
+                    <div><label htmlFor="ten_nha_cung_cap" className="block text-sm font-medium">Tên Nhà cung cấp</label><input type="text" name="ten_nha_cung_cap" id="ten_nha_cung_cap" onChange={handleChange} className="w-full mt-1 p-2 border rounded-lg" required /></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label htmlFor="nguoi-lien-lac" className="block text-sm font-medium text-gray-700">Người liên lạc</label>
-                            <input type="text" id="nguoi-lien-lac" className="w-full mt-1 px-4 py-2 border rounded-lg" />
-                        </div>
-                        <div>
-                            <label htmlFor="so-dien-thoai" className="block text-sm font-medium text-gray-700">Số điện thoại</label>
-                            <input type="tel" id="so-dien-thoai" className="w-full mt-1 px-4 py-2 border rounded-lg" />
-                        </div>
+                        <div><label htmlFor="nguoi_lien_lac" className="block text-sm font-medium">Người liên lạc</label><input type="text" name="nguoi_lien_lac" id="nguoi_lien_lac" onChange={handleChange} className="w-full mt-1 p-2 border rounded-lg" /></div>
+                        <div><label htmlFor="so_dien_thoai" className="block text-sm font-medium">Số điện thoại</label><input type="tel" name="so_dien_thoai" id="so_dien_thoai" onChange={handleChange} className="w-full mt-1 p-2 border rounded-lg" /></div>
                     </div>
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="email" className="w-full mt-1 px-4 py-2 border rounded-lg" />
-                    </div>
+                    <div><label htmlFor="email" className="block text-sm font-medium">Email</label><input type="email" name="email" id="email" onChange={handleChange} className="w-full mt-1 p-2 border rounded-lg" /></div>
+                    <div><label htmlFor="dia_chi" className="block text-sm font-medium">Địa chỉ</label><textarea name="dia_chi" id="dia_chi" onChange={handleChange} rows="3" className="w-full mt-1 p-2 border rounded-lg"></textarea></div>
                     <div className="pt-6 border-t flex justify-end space-x-4">
-                        <Link to="/admin/nha-cung-cap" className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">
-                            Hủy bỏ
-                        </Link>
-                        <button type="submit" className="bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700">
-                            Lưu nhà cung cấp
-                        </button>
+                        <Link to="/admin/nha-cung-cap" className="bg-gray-200 font-bold py-2 px-4 rounded-lg">Hủy bỏ</Link>
+                        <button type="submit" className="bg-purple-600 text-white font-bold py-2 px-4 rounded-lg">Lưu Nhà cung cấp</button>
                     </div>
                 </form>
             </div>

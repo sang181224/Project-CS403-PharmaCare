@@ -1,53 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserPlus, faPencilAlt, faUserLock, faUserCheck } from '@fortawesome/free-solid-svg-icons';
 
-// Dữ liệu mẫu
-const initialEmployees = [
-    { id: 1, name: 'Trần Thị B', email: 'tranb@pharmacare.com', role: 'Nhân viên bán hàng', joinDate: '15/01/2024', status: 'Đang hoạt động', avatar: 'https://via.placeholder.com/100/D1D5DB/4B5563?text=B' },
-    { id: 2, name: 'Lê Văn C', email: 'levanc@pharmacare.com', role: 'Quản lý kho', joinDate: '01/11/2023', status: 'Đang hoạt động', avatar: 'https://via.placeholder.com/100/E5E7EB/4B5563?text=C' },
-    { id: 3, name: 'Vũ Thị D', email: 'vuthid@pharmacare.com', role: 'Nhân viên bán hàng', joinDate: '01/03/2024', status: 'Tạm khóa', avatar: 'https://via.placeholder.com/100/FECACA/991B1B?text=D' },
-];
-
 function EmployeeManagementPage() {
-    const [employees, setEmployees] = useState(initialEmployees);
+    const [employees, setEmployees] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Hàm để thay đổi trạng thái khóa/mở khóa
-    const toggleLockStatus = (employeeId) => {
-        setEmployees(currentEmployees =>
-            currentEmployees.map(emp => {
-                if (emp.id === employeeId) {
-                    return { ...emp, status: emp.status === 'Đang hoạt động' ? 'Tạm khóa' : 'Đang hoạt động' };
+    const fetchEmployees = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch('http://localhost:3000/api/admin/employees', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                const errorResult = await response.json().catch(() => ({ error: 'Lỗi không xác định' }));
+                throw new Error(errorResult.error || 'Không thể tải danh sách nhân viên.');
+            }
+            const data = await response.json();
+            setEmployees(data);
+        } catch (error) {
+            console.error("Lỗi:", error);
+            alert(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchEmployees();
+    }, [fetchEmployees]);
+
+    // --- HÀM XỬ LÝ KHÓA/MỞ KHÓA ĐẦY ĐỦ ---
+    const handleToggleLockStatus = async (employee) => {
+        const newStatus = employee.trang_thai === 'hoat_dong' ? 'tam_khoa' : 'hoat_dong';
+        const actionText = newStatus === 'tam_khoa' ? 'khóa' : 'mở khóa';
+
+        if (window.confirm(`Bạn có chắc muốn ${actionText} tài khoản của ${employee.hoTen}?`)) {
+            try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`http://localhost:3000/api/admin/employees/${employee.id}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ trang_thai: newStatus })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    fetchEmployees(); // Tải lại danh sách để cập nhật giao diện
+                } else {
+                    alert('Lỗi: ' + result.error);
                 }
-                return emp;
-            })
-        );
+            } catch (error) {
+                alert('Lỗi kết nối đến server.');
+            }
+        }
     };
+
+    if (isLoading) return <div className="p-8">Đang tải...</div>;
 
     return (
         <>
-            {/* Page Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Quản lý Nhân viên</h1>
-                    <p className="text-gray-600 mt-1">Thêm, sửa và quản lý tài khoản nhân viên.</p>
-                </div>
-                <Link to="/admin/nhan-vien/them" className="w-full sm:w-auto mt-4 sm:mt-0 bg-purple-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-purple-700 flex items-center justify-center space-x-2">
-                    <FontAwesomeIcon icon={faUserPlus} />
-                    <span>Thêm nhân viên mới</span>
+            <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold text-gray-800">Quản lý Nhân viên</h1>
+                <Link to="/admin/nhan-vien/them" className="bg-purple-600 text-white font-bold py-2 px-4 rounded-lg">
+                    <FontAwesomeIcon icon={faUserPlus} className="mr-2" />
+                    Thêm nhân viên mới
                 </Link>
             </div>
 
-            {/* Employee Table */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-sm uppercase text-gray-700">
+                        <thead className="bg-gray-50 text-sm">
                             <tr>
                                 <th className="px-6 py-3">Nhân viên</th>
                                 <th className="px-6 py-3">Vai trò</th>
-                                <th className="px-6 py-3">Ngày vào làm</th>
+                                <th className="px-6 py-3">Ngày tạo</th>
                                 <th className="px-6 py-3">Trạng thái</th>
                                 <th className="px-6 py-3 text-center">Hành động</th>
                             </tr>
@@ -57,27 +92,25 @@ function EmployeeManagementPage() {
                                 <tr key={employee.id} className="border-b hover:bg-gray-50">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center space-x-3">
-                                            <img src={employee.avatar} alt={employee.name} className="w-10 h-10 rounded-full object-cover" />
+                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold uppercase">{employee.hoTen.charAt(0)}</div>
                                             <div>
-                                                <p className="font-medium text-gray-900">{employee.name}</p>
+                                                <p className="font-medium">{employee.hoTen}</p>
                                                 <p className="text-xs text-gray-500">{employee.email}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">{employee.role}</td>
-                                    <td className="px-6 py-4">{employee.joinDate}</td>
+                                    <td className="px-6 py-4 capitalize">{employee.vaiTro.replace('_', ' ')}</td>
+                                    <td className="px-6 py-4">{new Date(employee.ngayTao).toLocaleDateString('vi-VN')}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${employee.status === 'Đang hoạt động' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
-                                            {employee.status}
+                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${employee.trang_thai === 'hoat_dong' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
+                                            {employee.trang_thai === 'hoat_dong' ? 'Đang hoạt động' : 'Tạm khóa'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center justify-center space-x-4 text-gray-500">
-                                            <Link to={`/admin/nhan-vien/sua/${employee.id}`} className="hover:text-purple-600" title="Sửa">
-                                                <FontAwesomeIcon icon={faPencilAlt} />
-                                            </Link>
-                                            <button onClick={() => toggleLockStatus(employee.id)} className={employee.status === 'Đang hoạt động' ? 'hover:text-red-600' : 'hover:text-green-600'} title={employee.status === 'Đang hoạt động' ? 'Khóa tài khoản' : 'Mở khóa'}>
-                                                <FontAwesomeIcon icon={employee.status === 'Đang hoạt động' ? faUserLock : faUserCheck} />
+                                            <Link to={`/admin/nhan-vien/sua/${employee.id}`} className="hover:text-purple-600" title="Sửa"><FontAwesomeIcon icon={faPencilAlt} /></Link>
+                                            <button onClick={() => handleToggleLockStatus(employee)} className={employee.trang_thai === 'hoat_dong' ? 'hover:text-red-600' : 'hover:text-green-600'} title={employee.trang_thai === 'hoat_dong' ? 'Khóa tài khoản' : 'Mở khóa'}>
+                                                <FontAwesomeIcon icon={employee.trang_thai === 'hoat_dong' ? faUserLock : faUserCheck} />
                                             </button>
                                         </div>
                                     </td>
