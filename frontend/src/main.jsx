@@ -40,6 +40,9 @@ import SupplierManagementPage from './pages/admin/quan-tri-vien/SupplierManageme
 import AddSupplierPage from './pages/admin/quan-tri-vien/AddSupplierPage.jsx';
 import EditSupplierPage from './pages/admin/quan-tri-vien/EditSupplierPage.jsx';
 import Products from './pages/products/index.jsx';
+import { CartProvider } from './components/CartContext/index.jsx';
+import CartPage from './pages/cartPage/index.jsx';
+import PaymentPage from './pages/paymentPage/index.jsx';
 
 // --- Router cấu hình ---
 const router = createBrowserRouter([
@@ -54,6 +57,8 @@ const router = createBrowserRouter([
       { path: '/san-pham/:id', element: <ProductDetailPage /> },
       { path: '/debug-login', element: <DebugLoginPage /> },
       { path: '/product', element: <Products/> },
+      { path: '/cart', element: <CartPage/> },
+      { path: '/payment', element: <PaymentPage/> },
     ],
   },
   {
@@ -102,6 +107,8 @@ const router = createBrowserRouter([
 // --- Render ứng dụng ---
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
+    <CartProvider>
     <RouterProvider router={router} />
+    </CartProvider>
   </React.StrictMode>
 );

@@ -1,7 +1,9 @@
 import React from "react";
 import { ShoppingCartOutlined } from "@ant-design/icons";
+import { useCart } from "../../components/CartContext";
 
 const ProductCard = ({ item }) => {
+  const { addToCart } = useCart();
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow">
       <div className="relative">
@@ -48,7 +50,9 @@ const ProductCard = ({ item }) => {
               </span>
             )}
           </div>
-          <button className="py-1 px-2 bg-blue-500 rounded-full cursor-pointer hover:opacity-70">
+          <button
+          onClick={() => addToCart(item)}
+          className="py-1 px-2 bg-blue-500 rounded-full cursor-pointer hover:opacity-70">
             <ShoppingCartOutlined className="text-white" />
           </button>
         </div>

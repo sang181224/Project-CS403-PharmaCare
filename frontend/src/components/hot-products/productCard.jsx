@@ -1,8 +1,10 @@
 import React from "react";
 import { ShoppingCartOutlined } from "@ant-design/icons";
+import { useCart } from "../CartContext";
 
 const ProductCard = (props) => {
   const { item, isHot } = props;
+  const { addToCart } = useCart();
 
   return (
     <div className="rounded-xl bg-white shadow-md hover:shadow-xl transition-transform cursor-pointer">
@@ -33,12 +35,18 @@ const ProductCard = (props) => {
             )}
           </div>
           {isHot ? (
-            <div className="py-1 px-2 bg-blue-500 rounded-full cursor-pointer hover:opacity-70">
+            <div
+              onClick={() => addToCart(item)}
+              className="py-1 px-2 bg-blue-500 rounded-full cursor-pointer hover:opacity-70"
+            >
               <ShoppingCartOutlined className="text-white" />
             </div>
           ) : (
             <div>
-              <div className="bg-blue-600 hover:bg-blue-700 cursor-pointer text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap">
+              <div
+                onClick={() => addToCart(item)}
+                className="bg-blue-600 hover:bg-blue-700 cursor-pointer text-white px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap"
+              >
                 Thêm Giỏ Hàng
               </div>
             </div>
