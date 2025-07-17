@@ -1,46 +1,45 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Import useAuth để dùng context
 
 function LoginPage() {
-    // Sử dụng useState để lưu trữ email và mật khẩu người dùng nhập vào
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState(null); // Để lưu thông báo lỗi
-
-    // Sử dụng useNavigate để điều hướng chương trình
+    const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { login } = useAuth(); // Lấy hàm login từ context
 
-    // Hàm xử lý khi người dùng bấm nút Đăng nhập
-    const handleSubmit = async (event) => {
-        event.preventDefault(); // Ngăn form tự gửi đi
-        setError(null); // Xóa lỗi cũ
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
 
         try {
             const response = await fetch('http://localhost:3000/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, matKhau: password })
+                body: JSON.stringify({ email, matKhau: password })
             });
 
             const result = await response.json();
 
             if (response.ok) {
-                alert(result.message);
+                // Dùng hàm login từ context để cập nhật trạng thái toàn cục
+                login(result.user, result.token);
 
-                // Lưu token và thông tin người dùng vào trình duyệt
-                localStorage.setItem('authToken', result.token);
-                localStorage.setItem('user', JSON.stringify(result.user));
-
-                // Dùng navigate để chuyển hướng về trang chủ
-                navigate('/');
-                window.location.reload(); // Tải lại trang để header và sidebar được cập nhật
+                // Chuyển hướng theo vai trò
+                if (result.user.vaiTro === 'quan_tri_vien') {
+                    navigate('/admin/dashboard-admin');
+                } else if (result.user.vaiTro === 'nhan_vien' || result.user.vaiTro === 'quan_ly_kho') {
+                    navigate('/admin/dashboard');
+                } else {
+                    navigate('/');
+                }
+                window.location.reload(); // Tải lại để toàn bộ app cập nhật trạng thái mới
             } else {
-                // Nếu có lỗi, hiển thị lỗi đó
                 setError(result.error);
             }
         } catch (err) {
-            setError('Lỗi kết nối đến server. Vui lòng thử lại.');
-            console.error(err);
+            setError('Lỗi kết nối hoặc server không phản hồi.');
         }
     };
 
@@ -55,7 +54,7 @@ function LoginPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email hoặc Tên tài khoản</label>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                             <input
                                 type="email"
                                 id="email"
@@ -78,13 +77,12 @@ function LoginPage() {
                             />
                         </div>
 
-                        {/* Hiển thị thông báo lỗi nếu có */}
-                        {error && <p className="text-sm text-red-600">{error}</p>}
+                        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center">
                                 <input id="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Ghi nhớ đăng nhập</label>
+                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Ghi nhớ tôi</label>
                             </div>
                             <div className="text-sm">
                                 <a href="#" className="font-medium text-blue-600 hover:text-blue-500">Quên mật khẩu?</a>
@@ -92,7 +90,7 @@ function LoginPage() {
                         </div>
 
                         <div>
-                            <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-bold text-white bg-blue-600 hover:bg-blue-700">
                                 Đăng nhập
                             </button>
                         </div>

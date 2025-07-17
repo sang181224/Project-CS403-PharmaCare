@@ -1,26 +1,34 @@
 import React from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 function AdminHeader() {
-    const user = JSON.parse(localStorage.getItem('user'));
+  const { user } = useAuth(); // Lấy thông tin user từ context
 
-    return (
-        <header className="bg-white shadow-sm border-b sticky top-0 z-30">
-            <div className="max-w-full mx-auto px-6">
-                <div className="flex justify-between items-center py-3">
-                    <div className="flex items-center space-x-3">
-                        {/* Có thể thêm Breadcrumbs hoặc Title ở đây sau */}
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <img className="w-10 h-10 rounded-full" src={`https://via.placeholder.com/100/D1D5DB/4B5563?text=${user?.hoTen?.charAt(0)}`} alt="Avatar" />
-                        <div>
-                            <p className="text-sm font-medium text-gray-800">{user?.hoTen || 'Nhân viên'}</p>
-                            <p className="text-xs text-gray-600 capitalize">{user?.vaiTro?.replace('_', ' ') || 'Chưa rõ'}</p>
-                        </div>
-                    </div>
-                </div>
+  // Tạo ký tự đầu cho avatar, nếu không có tên thì hiển thị '?'
+  const avatarInitial = user?.hoTen ? user.hoTen.charAt(0).toUpperCase() : '?';
+  
+  // Thay đổi màu sắc vòng avatar tùy theo vai trò
+  const avatarRingColor = user?.vaiTro === 'quan_tri_vien' 
+    ? 'ring-purple-500' 
+    : 'ring-blue-500';
+
+  return (
+    <header className="bg-white shadow-sm border-b">
+      <div className="max-w-full mx-auto px-6">
+        <div className="flex justify-end items-center py-3">
+          <div className="flex items-center space-x-3">
+            <div className={`w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 ring-2 ${avatarRingColor}`}>
+                {avatarInitial}
             </div>
-        </header>
-    );
+            <div>
+              <p className="text-sm font-medium text-gray-800">{user?.hoTen || 'Không rõ'}</p>
+              <p className="text-xs text-gray-600 capitalize">{user?.vaiTro?.replace('_', ' ') || 'Không rõ'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 }
 
 export default AdminHeader;

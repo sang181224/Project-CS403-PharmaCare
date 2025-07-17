@@ -1,35 +1,92 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faPencilAlt, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
 
+// Custom hook để trì hoãn việc tìm kiếm (Debouncing)
+function useDebounce(value, delay) {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+}
+
 function OrderManagementPage() {
     const [orders, setOrders] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [filters, setFilters] = useState({
+        search: '',
+        status: '',
+        date_from: '',
+        date_to: ''
+    });
 
-    const fetchOrders = async () => {
+    // Ref để tham chiếu đến ô input tìm kiếm
+    const searchInputRef = useRef(null);
+    const debouncedSearchTerm = useDebounce(filters.search, 500);
+
+    // Tự động focus vào ô input khi trang tải xong
+    useEffect(() => {
+        if (searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, []);
+
+    // Hàm gọi API để lấy danh sách đơn hàng
+    const fetchOrders = useCallback(async () => {
+        setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:3000/api/orders');
+            const token = localStorage.getItem('authToken');
+            const queryParams = new URLSearchParams({
+                search: debouncedSearchTerm,
+                status: filters.status,
+                date_from: filters.date_from,
+                date_to: filters.date_to,
+            }).toString();
+
+            const response = await fetch(`http://localhost:3000/api/orders?${queryParams}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             const data = await response.json();
-            if (response.ok) setOrders(data);
+            if (response.ok) {
+                setOrders(data);
+            } else {
+                throw new Error(data.error || 'Lỗi không xác định');
+            }
         } catch (error) {
             console.error("Lỗi:", error);
+            alert("Không thể tải danh sách đơn hàng.");
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [debouncedSearchTerm, filters.status, filters.date_from, filters.date_to]);
 
     useEffect(() => {
         fetchOrders();
-    }, []);
+    }, [fetchOrders]);
 
-    // Hàm xử lý xóa đơn hàng
+    const handleFilterChange = (e) => {
+        setFilters(prevFilters => ({
+            ...prevFilters,
+            [e.target.name]: e.target.value
+        }));
+    };
+
     const handleDelete = async (orderId, orderCode) => {
         if (window.confirm(`Bạn có chắc muốn xóa đơn hàng ${orderCode} không?`)) {
             try {
+                const token = localStorage.getItem('authToken');
                 const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
                     method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
+
                 const result = await response.json();
                 if (response.ok) {
                     alert(result.message);
@@ -52,10 +109,6 @@ function OrderManagementPage() {
         return 'bg-gray-100 text-gray-800';
     };
 
-    if (isLoading) {
-        return <div className="p-8">Đang tải danh sách đơn hàng...</div>;
-    }
-
     return (
         <>
             <div className="flex justify-between items-center mb-8">
@@ -63,6 +116,21 @@ function OrderManagementPage() {
                 <Link to="/admin/don-hang/tao-moi" className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
                     <FontAwesomeIcon icon={faPlus} className="mr-2" />Tạo đơn hàng mới
                 </Link>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <input ref={searchInputRef} type="text" name="search" placeholder="Tìm theo Mã ĐH, Tên KH..." value={filters.search} onChange={handleFilterChange} className="w-full p-2 border rounded-lg" />
+                    <select name="status" value={filters.status} onChange={handleFilterChange} className="w-full p-2 border rounded-lg">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Đang xử lý">Đang xử lý</option>
+                        <option value="Đang giao">Đang giao</option>
+                        <option value="Đã giao">Đã giao</option>
+                        <option value="Đã hủy">Đã hủy</option>
+                    </select>
+                    <input type="date" name="date_from" value={filters.date_from} onChange={handleFilterChange} className="w-full p-2 border rounded-lg text-gray-500" />
+                    <input type="date" name="date_to" value={filters.date_to} onChange={handleFilterChange} className="w-full p-2 border rounded-lg text-gray-500" />
+                </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -79,22 +147,28 @@ function OrderManagementPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {orders.map((order) => (
-                                <tr key={order.id} className="border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4 font-medium"><Link to={`/admin/don-hang/${order.id}`} className="text-blue-600 hover:underline">{order.ma_don_hang}</Link></td>
-                                    <td className="px-6 py-4">{order.ten_khach_hang}</td>
-                                    <td className="px-6 py-4">{new Date(order.ngay_dat).toLocaleDateString('vi-VN')}</td>
-                                    <td className="px-6 py-4 font-semibold">{Number(order.tong_tien).toLocaleString('vi-VN')}đ</td>
-                                    <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.trang_thai)}`}>{order.trang_thai}</span></td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center justify-center space-x-4 text-gray-500">
-                                            <Link to={`/admin/don-hang/${order.id}`} className="hover:text-blue-600" title="Xem chi tiết"><FontAwesomeIcon icon={faEye} /></Link>
-                                            <Link to={`/admin/don-hang/sua/${order.id}`} className="hover:text-green-600" title="Sửa"><FontAwesomeIcon icon={faPencilAlt} /></Link>
-                                            <button onClick={() => handleDelete(order.id, order.ma_don_hang)} className="hover:text-red-600" title="Xóa"><FontAwesomeIcon icon={faTrash} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                            {isLoading ? (
+                                <tr><td colSpan="6" className="text-center p-8 text-gray-500">Đang tải...</td></tr>
+                            ) : orders.length > 0 ? (
+                                orders.map((order) => (
+                                    <tr key={order.id} className="border-b hover:bg-gray-50">
+                                        <td className="px-6 py-4 font-medium"><Link to={`/admin/don-hang/${order.id}`} className="text-blue-600 hover:underline">{order.ma_don_hang}</Link></td>
+                                        <td className="px-6 py-4">{order.ten_khach_hang}</td>
+                                        <td className="px-6 py-4">{new Date(order.ngay_dat).toLocaleDateString('vi-VN')}</td>
+                                        <td className="px-6 py-4 font-semibold">{Number(order.tong_tien).toLocaleString('vi-VN')}đ</td>
+                                        <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.trang_thai)}`}>{order.trang_thai}</span></td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-center space-x-4 text-gray-500">
+                                                <Link to={`/admin/don-hang/${order.id}`} className="hover:text-blue-600" title="Xem chi tiết"><FontAwesomeIcon icon={faEye} /></Link>
+                                                <Link to={`/admin/don-hang/sua/${order.id}`} className="hover:text-green-600" title="Sửa"><FontAwesomeIcon icon={faPencilAlt} /></Link>
+                                                <button onClick={() => handleDelete(order.id, order.ma_don_hang)} className="hover:text-red-600" title="Xóa"><FontAwesomeIcon icon={faTrash} /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr><td colSpan="6" className="text-center p-8 text-gray-500">Không tìm thấy đơn hàng nào.</td></tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -104,3 +178,4 @@ function OrderManagementPage() {
 }
 
 export default OrderManagementPage;
+

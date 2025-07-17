@@ -115,19 +115,14 @@ app.get('/api/products', async (req, res) => {
     try {
         // Lấy từ khóa tìm kiếm từ query parameter, ví dụ: /api/products?search=para
         const searchTerm = req.query.search || '';
-
         let sql = "SELECT * FROM products";
         const params = [];
-
         if (searchTerm) {
             sql += " WHERE ten_thuoc LIKE ? OR ma_thuoc LIKE ?";
             // Thêm dấu % để tìm kiếm gần đúng
             params.push(`%${searchTerm}%`);
-            params.push(`%${searchTerm}%`);
         }
-
         sql += " ORDER BY id DESC";
-
         const [rows] = await pool.query(sql, params);
         res.status(200).json(rows);
     } catch (error) {
@@ -151,12 +146,10 @@ app.get('/api/products/:id', async (req, res) => {
 app.post('/api/products', upload.single('hinh_anh'), async (req, res) => {
     const { ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, ma_lo_thuoc, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho } = req.body;
     const finalImagePath = req.file ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` : 'https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=No+Image';
-
     // Kiểm tra các trường bắt buộc
     if (!ten_thuoc || !ma_thuoc || !gia_ban || !ma_lo_thuoc || !so_luong_nhap) {
         return res.status(400).json({ error: 'Các trường thông tin sản phẩm và lô hàng đầu tiên là bắt buộc.' });
     }
-
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
@@ -167,7 +160,6 @@ app.post('/api/products', upload.single('hinh_anh'), async (req, res) => {
         const productParams = [ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, finalImagePath, so_luong_nhap, 'Còn hàng'];
         const [productResult] = await connection.query(productSql, productParams);
         const newProductId = productResult.insertId;
-
         // 2. Thêm lô hàng đầu tiên vào bảng `lo_thuoc`
         const batchSql = `INSERT INTO lo_thuoc (id_san_pham, ma_lo_thuoc, so_luong_nhap, so_luong_con, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
         const batchParams = [newProductId, ma_lo_thuoc, so_luong_nhap, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho];
@@ -280,11 +272,39 @@ app.post('/api/batches', async (req, res) => {
 //  API Quản lý Đơn hàng
 
 // API lấy danh sách đơn hàng
-app.get('/api/orders', async (req, res) => {
+// API lấy danh sách đơn hàng (có tìm kiếm và lọc)
+app.get('/api/orders', checkAuth, async (req, res) => {
     try {
-        const [rows] = await pool.query("SELECT * FROM don_hang ORDER BY ngay_dat DESC");
+        const { search, status, date_from, date_to } = req.query;
+
+        let sql = "SELECT * FROM don_hang";
+        const params = [];
+        const whereClauses = [];
+
+        if (search) {
+            whereClauses.push(`(ma_don_hang LIKE ? OR ten_khach_hang LIKE ?)`);
+            params.push(`%${search}%`, `%${search}%`);
+        }
+        if (status) {
+            whereClauses.push(`trang_thai = ?`);
+            params.push(status);
+        }
+        if (date_from && date_to) {
+            whereClauses.push(`ngay_dat BETWEEN ? AND ?`);
+            params.push(date_from, `${date_to} 23:59:59`);
+        }
+
+        if (whereClauses.length > 0) {
+            sql += " WHERE " + whereClauses.join(" AND ");
+        }
+
+        sql += " ORDER BY ngay_dat DESC";
+
+        const [rows] = await pool.query(sql, params);
         res.status(200).json(rows);
-    } catch (error) { res.status(500).json({ error: error.message }); }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // API lấy chi tiết một đơn hàng
@@ -728,13 +748,13 @@ app.get('/api/admin/employees/:id', checkAuth, checkRole(['quan_tri_vien']), asy
         const { id } = req.params;
         // THÊM `trang_thai` VÀO CÂU LỆNH SELECT Ở ĐÂY
         const sql = "SELECT id, hoTen, email, vaiTro, trang_thai FROM users WHERE id = ?";
-        
+
         const [rows] = await pool.query(sql, [id]);
-        
+
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Không tìm thấy nhân viên.' });
         }
-        
+
         res.status(200).json(rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
