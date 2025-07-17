@@ -11,10 +11,6 @@ function AdministratorSidebar({ onLogout }) {
 
     return (
         <aside className="w-64 bg-gray-800 text-gray-300 flex flex-col">
-            <div className="p-4 border-b border-gray-700 flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg flex items-center justify-center"><FontAwesomeIcon icon={faPills} className="text-white text-xl" /></div>
-                <div><h1 className="text-xl font-bold text-white">PharmaCare</h1><p className="text-xs text-gray-400">Super Admin</p></div>
-            </div>
             <nav className="p-4 flex-grow">
                 <ul className="space-y-2 list-none p-0">
                     <NavItem to="/admin/dashboard-admin" icon={faTachometerAlt}>Tổng quan</NavItem>

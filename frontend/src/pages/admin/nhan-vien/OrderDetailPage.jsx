@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPrint, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 
@@ -14,6 +14,7 @@ const getStatusColor = (status) => {
 
 function OrderDetailPage() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -32,7 +33,27 @@ function OrderDetailPage() {
         };
         fetchOrderDetail();
     }, [id]);
+    const handleCreateInvoice = async () => {
+        if (!window.confirm('Bạn có chắc muốn xuất hóa đơn cho đơn hàng này?')) return;
 
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`http://localhost:3000/api/orders/${id}/create-invoice`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message);
+                // Chuyển hướng đến trang chi tiết hóa đơn vừa tạo
+                navigate(`/admin/hoa-don/${result.invoiceId}`);
+            } else {
+                alert('Lỗi: ' + result.error);
+            }
+        } catch (error) {
+            alert('Lỗi kết nối.');
+        }
+    };
     if (isLoading) return <div className="p-8">Đang tải...</div>;
     if (!order) return <div className="p-8">Không tìm thấy đơn hàng.</div>;
 
@@ -43,7 +64,9 @@ function OrderDetailPage() {
                     <h1 className="text-3xl font-bold text-gray-800">Chi tiết Đơn hàng {order.ma_don_hang}</h1>
                 </div>
                 <div className="flex space-x-2 mt-4 sm:mt-0">
-                    <button className="bg-white border text-gray-700 font-bold py-2 px-4 rounded-lg"><FontAwesomeIcon icon={faPrint} className="mr-2" />In hóa đơn</button>
+                    <button onClick={handleCreateInvoice} className="bg-white border text-gray-700 font-bold py-2 px-4 rounded-lg">
+                        <FontAwesomeIcon icon={faPrint} className="mr-2" />Xuất Hóa đơn
+                    </button>
                     <Link to={`/admin/don-hang/sua/${order.id}`} className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
                         <FontAwesomeIcon icon={faPencilAlt} className="mr-2" />Sửa đơn hàng
                     </Link>

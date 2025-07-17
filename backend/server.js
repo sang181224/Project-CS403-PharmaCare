@@ -110,21 +110,48 @@ app.post('/api/login', async (req, res) => {
 
 // --- PRODUCT & BATCH ROUTES ---
 // --- Product Routes (Quản lý Kho) ---
-// API lấy danh sách sản phẩm (có tìm kiếm)
-app.get('/api/products', async (req, res) => {
+// API lấy danh sách sản phẩm
+app.get('/api/products', checkAuth, async (req, res) => {
     try {
-        // Lấy từ khóa tìm kiếm từ query parameter, ví dụ: /api/products?search=para
-        const searchTerm = req.query.search || '';
-        let sql = "SELECT * FROM products";
+        const { search, status, category, page = 1, limit = 10 } = req.query;
+
+        let baseSql = "FROM products";
         const params = [];
-        if (searchTerm) {
-            sql += " WHERE ten_thuoc LIKE ? OR ma_thuoc LIKE ?";
-            // Thêm dấu % để tìm kiếm gần đúng
-            params.push(`%${searchTerm}%`);
+        const whereClauses = [];
+
+        if (search) {
+            whereClauses.push(`(ten_thuoc LIKE ? OR ma_thuoc LIKE ?)`);
+            params.push(`%${search}%`, `%${search}%`);
         }
-        sql += " ORDER BY id DESC";
-        const [rows] = await pool.query(sql, params);
-        res.status(200).json(rows);
+        if (status) {
+            whereClauses.push(`trang_thai = ?`);
+            params.push(status);
+        }
+        if (category) {
+            whereClauses.push(`danh_muc = ?`);
+            params.push(category);
+        }
+
+        if (whereClauses.length > 0) {
+            baseSql += " WHERE " + whereClauses.join(" AND ");
+        }
+
+        // Đếm tổng số kết quả
+        const countSql = `SELECT COUNT(*) as totalItems ${baseSql}`;
+        const [totalResult] = await pool.query(countSql, params);
+        const totalItems = totalResult[0].totalItems;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // Lấy dữ liệu cho trang hiện tại
+        const offset = (page - 1) * limit;
+        const dataSql = `SELECT * ${baseSql} ORDER BY id DESC LIMIT ? OFFSET ?`;
+
+        const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
+
+        res.status(200).json({
+            data: rows,
+            pagination: { currentPage: parseInt(page), totalPages, totalItems }
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -272,36 +299,43 @@ app.post('/api/batches', async (req, res) => {
 //  API Quản lý Đơn hàng
 
 // API lấy danh sách đơn hàng
-// API lấy danh sách đơn hàng (có tìm kiếm và lọc)
 app.get('/api/orders', checkAuth, async (req, res) => {
     try {
-        const { search, status, date_from, date_to } = req.query;
+        const { search, status, page = 1, limit = 10 } = req.query;
 
-        let sql = "SELECT * FROM don_hang";
+        let whereClause = "WHERE 1=1"; // Bắt đầu với điều kiện luôn đúng
         const params = [];
-        const whereClauses = [];
 
         if (search) {
-            whereClauses.push(`(ma_don_hang LIKE ? OR ten_khach_hang LIKE ?)`);
+            whereClause += ` AND (ma_don_hang LIKE ? OR ten_khach_hang LIKE ?)`;
             params.push(`%${search}%`, `%${search}%`);
         }
         if (status) {
-            whereClauses.push(`trang_thai = ?`);
+            whereClause += ` AND trang_thai = ?`;
             params.push(status);
         }
-        if (date_from && date_to) {
-            whereClauses.push(`ngay_dat BETWEEN ? AND ?`);
-            params.push(date_from, `${date_to} 23:59:59`);
-        }
 
-        if (whereClauses.length > 0) {
-            sql += " WHERE " + whereClauses.join(" AND ");
-        }
+        // 1. Đếm tổng số kết quả
+        const countSql = `SELECT COUNT(*) as totalItems FROM don_hang ${whereClause}`;
+        const [totalResult] = await pool.query(countSql, params);
+        const totalItems = totalResult[0].totalItems;
+        const totalPages = Math.ceil(totalItems / limit);
 
-        sql += " ORDER BY ngay_dat DESC";
+        // 2. Lấy dữ liệu cho trang hiện tại
+        const offset = (page - 1) * limit;
+        const dataSql = `SELECT * FROM don_hang ${whereClause} ORDER BY ngay_dat DESC LIMIT ? OFFSET ?`;
 
-        const [rows] = await pool.query(sql, params);
-        res.status(200).json(rows);
+        const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
+
+        // 3. Trả về kết quả
+        res.status(200).json({
+            data: rows,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: totalPages,
+                totalItems: totalItems
+            }
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -408,7 +442,58 @@ app.post('/api/orders', async (req, res) => {
         connection.release();
     }
 });
+// API Tạo hóa đơn từ một đơn hàng có sẵn
+app.post('/api/orders/:id/create-invoice', checkAuth, async (req, res) => {
+    const orderId = req.params.id;
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
 
+        // Kiểm tra xem đơn hàng đã có hóa đơn chưa
+        const [existingInvoice] = await connection.query("SELECT id FROM hoa_don WHERE id_don_hang = ?", [orderId]);
+        if (existingInvoice.length > 0) {
+            throw new Error('Đơn hàng này đã được xuất hóa đơn rồi.');
+        }
+
+        // Lấy thông tin đơn hàng
+        const [orderRows] = await connection.query("SELECT * FROM don_hang WHERE id = ?", [orderId]);
+        if (orderRows.length === 0) throw new Error('Không tìm thấy đơn hàng.');
+        const order = orderRows[0];
+
+        // Tạo số hóa đơn mới
+        const today = new Date();
+        const datePrefix = today.getFullYear().toString().slice(-2) + ('0' + (today.getMonth() + 1)).slice(-2);
+        const [lastInvoice] = await connection.query("SELECT so_hoa_don FROM hoa_don WHERE so_hoa_don LIKE ? ORDER BY id DESC LIMIT 1", [`HD${datePrefix}-%`]);
+        let newSequence = 1;
+        if (lastInvoice.length > 0) {
+            newSequence = parseInt(lastInvoice[0].so_hoa_don.split('-')[1]) + 1;
+        }
+        const invoiceCode = `HD${datePrefix}-${newSequence.toString().padStart(4, '0')}`;
+
+        // 1. Tạo hóa đơn mới
+        const invoiceSql = `INSERT INTO hoa_don (so_hoa_don, id_don_hang, ngay_xuat_hoa_don, ten_khach_hang, trang_thai, tong_tien) VALUES (?, ?, ?, ?, ?, ?)`;
+        const [invoiceResult] = await connection.query(invoiceSql, [invoiceCode, orderId, new Date(), order.ten_khach_hang, 'Đã thanh toán', order.tong_tien]);
+        const newInvoiceId = invoiceResult.insertId;
+
+        // 2. Sao chép chi tiết đơn hàng sang chi tiết hóa đơn
+        const [orderItems] = await connection.query("SELECT id_san_pham, so_luong, don_gia, thanh_tien, (SELECT ten_thuoc FROM products WHERE id = id_san_pham) as ten_san_pham FROM chi_tiet_don_hang WHERE id_don_hang = ?", [orderId]);
+
+        const itemPromises = orderItems.map(item => {
+            const detailSql = `INSERT INTO chi_tiet_hoa_don (id_hoa_don, id_san_pham, ten_san_pham, so_luong, don_gia, thanh_tien) VALUES (?, ?, ?, ?, ?, ?)`;
+            return connection.query(detailSql, [newInvoiceId, item.id_san_pham, item.ten_san_pham, item.so_luong, item.don_gia, item.thanh_tien]);
+        });
+        await Promise.all(itemPromises);
+
+        await connection.commit();
+        res.status(201).json({ message: `Tạo hóa đơn ${invoiceCode} thành công!`, invoiceId: newInvoiceId });
+
+    } catch (error) {
+        await connection.rollback();
+        res.status(500).json({ error: error.message });
+    } finally {
+        connection.release();
+    }
+});
 // --- API TƯ VẤN ---
 app.get('/api/consultations', async (req, res) => {
     try {
@@ -449,16 +534,34 @@ app.put('/api/consultations/:id/reply', async (req, res) => {
 // --- GOODS RECEIPT/ISSUE ROUTES ---
 
 // API lấy danh sách Phiếu Nhập Kho
-app.get('/api/receipts', async (req, res) => {
+app.get('/api/receipts', checkAuth, async (req, res) => {
     try {
-        const sql = `
-            SELECT pn.*, u.hoTen as ten_nhan_vien
+        const { search, page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
+
+        let whereClause = 'WHERE 1=1';
+        const params = [];
+        if (search) {
+            whereClause += ` AND (pn.ma_phieu_nhap LIKE ? OR ncc.ten_nha_cung_cap LIKE ?)`;
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        const countSql = `SELECT COUNT(*) as totalItems FROM phieu_nhap pn LEFT JOIN nha_cung_cap ncc ON pn.id_nha_cung_cap = ncc.id ${whereClause}`;
+        const [totalResult] = await pool.query(countSql, params);
+        const totalItems = totalResult[0].totalItems;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        const dataSql = `
+            SELECT pn.*, ncc.ten_nha_cung_cap, u.hoTen as ten_nhan_vien
             FROM phieu_nhap pn
+            LEFT JOIN nha_cung_cap ncc ON pn.id_nha_cung_cap = ncc.id
             LEFT JOIN users u ON pn.id_nhan_vien = u.id
-            ORDER BY pn.ngay_nhap DESC
+            ${whereClause}
+            ORDER BY pn.ngay_nhap DESC LIMIT ? OFFSET ?
         `;
-        const [rows] = await pool.query(sql);
-        res.status(200).json(rows);
+        const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
+
+        res.status(200).json({ data: rows, pagination: { currentPage: parseInt(page), totalPages, totalItems } });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -560,17 +663,34 @@ app.post('/api/receipts', async (req, res) => {
 });
 
 // API lấy danh sách Phiếu Xuất Kho
-app.get('/api/issues', async (req, res) => {
+app.get('/api/issues', checkAuth, async (req, res) => {
     try {
-        const sql = `
+        const { search, page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
+
+        let whereClause = 'WHERE 1=1';
+        const params = [];
+        if (search) {
+            whereClause += ` AND (px.ma_phieu_xuat LIKE ? OR dh.ma_don_hang LIKE ?)`;
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        const countSql = `SELECT COUNT(*) as totalItems FROM phieu_xuat px LEFT JOIN don_hang dh ON px.id_don_hang = dh.id ${whereClause}`;
+        const [totalResult] = await pool.query(countSql, params);
+        const totalItems = totalResult[0].totalItems;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        const dataSql = `
             SELECT px.*, u.hoTen as ten_nhan_vien, dh.ma_don_hang
             FROM phieu_xuat px
             LEFT JOIN users u ON px.id_nhan_vien = u.id
             LEFT JOIN don_hang dh ON px.id_don_hang = dh.id
-            ORDER BY px.ngay_xuat DESC
+            ${whereClause}
+            ORDER BY px.ngay_xuat DESC LIMIT ? OFFSET ?
         `;
-        const [rows] = await pool.query(sql);
-        res.status(200).json(rows);
+        const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
+
+        res.status(200).json({ data: rows, pagination: { currentPage: parseInt(page), totalPages, totalItems } });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -704,14 +824,27 @@ app.post('/api/debug/login-as-role', (req, res) => {
         user: userPayload
     });
 });
-// API lấy danh sách nhân viên (Bảo vệ theo vai trò)
-// API lấy danh sách nhân viên (Bảo vệ theo vai trò)
+// API lấy danh sách nhân viên (có tìm kiếm và lọc trạng thái)
 app.get('/api/admin/employees', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
     try {
-        // THÊM `trang_thai` VÀO CÂU LỆNH SELECT Ở ĐÂY
-        const sql = "SELECT id, hoTen, email, vaiTro, ngayTao, trang_thai FROM users WHERE vaiTro != 'thanh_vien' ORDER BY id DESC";
+        const { search, status } = req.query; // Thêm status
 
-        const [rows] = await pool.query(sql);
+        let sql = "SELECT id, hoTen, email, vaiTro, ngayTao, trang_thai FROM users WHERE vaiTro != 'thanh_vien'";
+        const params = [];
+
+        if (search) {
+            sql += " AND (hoTen LIKE ? OR email LIKE ?)";
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        if (status) {
+            sql += " AND trang_thai = ?";
+            params.push(status);
+        }
+
+        sql += " ORDER BY id DESC";
+
+        const [rows] = await pool.query(sql, params);
         res.status(200).json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -808,8 +941,30 @@ app.put('/api/admin/employees/:id/status', checkAuth, checkRole(['quan_tri_vien'
 // API lấy danh sách Nhà cung cấp
 app.get('/api/admin/suppliers', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
     try {
-        const [rows] = await pool.query("SELECT * FROM nha_cung_cap ORDER BY id DESC");
-        res.status(200).json(rows);
+        const { search, page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
+
+        let whereClause = '';
+        const params = [];
+        if (search) {
+            whereClause = `WHERE ten_nha_cung_cap LIKE ? OR email LIKE ? OR so_dien_thoai LIKE ?`;
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        }
+
+        // Đếm tổng số kết quả
+        const countSql = `SELECT COUNT(*) as totalItems FROM nha_cung_cap ${whereClause}`;
+        const [totalResult] = await pool.query(countSql, params);
+        const totalItems = totalResult[0].totalItems;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // Lấy dữ liệu cho trang hiện tại
+        const dataSql = `SELECT * FROM nha_cung_cap ${whereClause} ORDER BY id DESC LIMIT ? OFFSET ?`;
+        const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
+        
+        res.status(200).json({
+            data: rows,
+            pagination: { currentPage: parseInt(page), totalPages, totalItems }
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -887,6 +1042,126 @@ app.get('/api/reports/revenue-by-month', checkAuth, checkRole(['quan_tri_vien'])
         `;
         const [rows] = await pool.query(sql);
         res.status(200).json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --- INVOICE ROUTES ---
+// API lấy danh sách hóa đơn (có phân trang và lọc)
+app.get('/api/invoices', checkAuth, async (req, res) => {
+    try {
+        const { search, status, page = 1, limit = 10 } = req.query;
+
+        let baseSql = `
+            FROM hoa_don hd
+            JOIN don_hang dh ON hd.id_don_hang = dh.id
+        `;
+        const params = [];
+        const whereClauses = [];
+
+        if (search) {
+            whereClauses.push(`(hd.so_hoa_don LIKE ? OR hd.ten_khach_hang LIKE ?)`);
+            params.push(`%${search}%`, `%${search}%`);
+        }
+        if (status) {
+            whereClauses.push(`hd.trang_thai = ?`);
+            params.push(status);
+        }
+
+        if (whereClauses.length > 0) {
+            baseSql += " WHERE " + whereClauses.join(" AND ");
+        }
+
+        // Đếm tổng số kết quả
+        const countSql = `SELECT COUNT(*) as totalItems ${baseSql}`;
+        const [totalResult] = await pool.query(countSql, params);
+        const totalItems = totalResult[0].totalItems;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // Lấy dữ liệu cho trang hiện tại
+        const offset = (page - 1) * limit;
+        const dataSql = `SELECT hd.*, dh.ma_don_hang ${baseSql} ORDER BY hd.ngay_xuat_hoa_don DESC LIMIT ? OFFSET ?`;
+
+        const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
+
+        res.status(200).json({
+            data: rows,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: totalPages,
+                totalItems: totalItems
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+// API lấy chi tiết một hóa đơn
+app.get('/api/invoices/:id', checkAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Lấy thông tin chung của hóa đơn
+        const invoiceSql = `
+            SELECT hd.*, dh.ma_don_hang 
+            FROM hoa_don hd
+            JOIN don_hang dh ON hd.id_don_hang = dh.id
+            WHERE hd.id = ?
+        `;
+        const [invoiceRows] = await pool.query(invoiceSql, [id]);
+        if (invoiceRows.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy hóa đơn.' });
+        }
+        const invoiceData = invoiceRows[0];
+
+        // Lấy danh sách các sản phẩm trong hóa đơn đó
+        const itemsSql = "SELECT * FROM chi_tiet_hoa_don WHERE id_hoa_don = ?";
+        const [itemRows] = await pool.query(itemsSql, [id]);
+        invoiceData.items = itemRows;
+
+        res.status(200).json(invoiceData);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+// API lấy lịch sử đơn hàng của chính người dùng đang đăng nhập
+app.get('/api/my/orders', checkAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const sql = "SELECT * FROM don_hang WHERE id_thanh_vien = ? ORDER BY ngay_dat DESC";
+        const [rows] = await pool.query(sql, [userId]);
+        res.status(200).json(rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+// --- USER-SPECIFIC ROUTES ---
+
+// API lấy thông tin chi tiết của người dùng đang đăng nhập
+app.get('/api/my/profile', checkAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [rows] = await pool.query("SELECT id, hoTen, email, soDienThoai, diaChi FROM users WHERE id = ?", [userId]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy người dùng.' });
+        }
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API cập nhật thông tin cá nhân
+app.put('/api/my/profile', checkAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { hoTen, soDienThoai, diaChi } = req.body;
+
+        const sql = "UPDATE users SET hoTen = ?, soDienThoai = ?, diaChi = ? WHERE id = ?";
+        await pool.query(sql, [hoTen, soDienThoai, diaChi, userId]);
+
+        res.status(200).json({ message: 'Cập nhật thông tin thành công!' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

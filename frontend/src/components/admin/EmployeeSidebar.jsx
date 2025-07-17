@@ -20,8 +20,8 @@ const NavItem = ({ to, icon, children }) => (
             to={to}
             end // Đảm bảo chỉ active khi đường dẫn chính xác (quan trọng cho Dashboard)
             className={({ isActive }) => `flex items-center space-x-3 p-3 rounded-lg transition-colors ${isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                 }`}
         >
             <FontAwesomeIcon icon={icon} className="fa-fw w-5 text-center" />
@@ -35,18 +35,6 @@ function EmployeeSidebar({ onLogout }) {
     return (
         // Sử dụng flex-col để đẩy nút Đăng xuất xuống dưới
         <aside className="w-64 bg-gray-800 text-gray-300 flex flex-col flex-shrink-0">
-
-            {/* Header của Sidebar */}
-            <div className="p-4 border-b border-gray-700 flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <FontAwesomeIcon icon={faPills} className="text-white text-xl" />
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold text-white">PharmaCare</h1>
-                    <p className="text-xs text-gray-400">Khu vực Nhân viên</p>
-                </div>
-            </div>
-
             {/* Menu chính, dùng flex-grow để nó chiếm hết không gian ở giữa */}
             <nav className="p-4 flex-grow">
                 <ul className="space-y-2 list-none p-0">

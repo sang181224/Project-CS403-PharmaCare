@@ -1,42 +1,26 @@
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import AdminHeader from './AdminHeader';
+import Header from '../Header'; // <-- DÙNG LẠI HEADER CHUNG
 import EmployeeSidebar from './EmployeeSidebar';
 import AdministratorSidebar from './AdministratorSidebar';
+import { useAuth } from '../../context/AuthContext';
 
 function AdminLayout() {
-    const navigate = useNavigate();
-    const userString = localStorage.getItem('user');
-    let user = null;
+    const { user, logout } = useAuth();
+    
+    if (!user) return null; // ProtectedRoute sẽ xử lý chuyển hướng
 
-    if (userString) {
-        try { user = JSON.parse(userString); } catch (error) {
-            console.error("Lỗi đọc dữ liệu người dùng:", error);
-            localStorage.clear();
-            navigate('/dang-nhap');
-        }
-    }
+    // Quyết định sidebar nào sẽ được hiển thị
+    const SidebarComponent = user.vaiTro === 'quan_tri_vien' 
+        ? <AdministratorSidebar onLogout={logout} /> 
+        : <EmployeeSidebar onLogout={logout} />;
 
-    if (!user) { return <div>Đang kiểm tra quyền truy cập...</div>; }
-
-    // Hàm xử lý đăng xuất
-    const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        alert('Bạn đã đăng xuất.');
-        navigate('/dang-nhap');
-    };
-
-    // Quyết định sidebar nào sẽ được hiển thị và truyền hàm logout vào
-    const SidebarToShow = user?.vaiTro === 'quan_tri_vien'
-        ? <AdministratorSidebar onLogout={handleLogout} />
-        : <EmployeeSidebar onLogout={handleLogout} />;
-
+    // CẤU TRÚC MỚI: Header ở trên, Sidebar và Nội dung ở dưới
     return (
-        <div className="flex h-screen bg-gray-100">
-            {SidebarToShow}
-            <div className="flex-1 flex flex-col">
-                <AdminHeader />
+        <div className="flex flex-col min-h-screen bg-gray-100">
+            <Header /> {/* SỬ DỤNG HEADER CHUNG Ở ĐÂY */}
+            <div className="flex flex-1">
+                {SidebarComponent}
                 <main className="flex-1 p-8 overflow-y-auto">
                     <Outlet />
                 </main>

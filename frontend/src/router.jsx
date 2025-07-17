@@ -35,69 +35,91 @@ import EditEmployeePage from './pages/admin/quan-tri-vien/EditEmployeePage.jsx';
 import SupplierManagementPage from './pages/admin/quan-tri-vien/SupplierManagementPage.jsx';
 import AddSupplierPage from './pages/admin/quan-tri-vien/AddSupplierPage.jsx';
 import EditSupplierPage from './pages/admin/quan-tri-vien/EditSupplierPage.jsx';
-import ReceiptDetailPage from './pages/admin/nhan-vien/ReceiptDetailPage.jsx';
-import IssueDetailPage from './pages/admin/nhan-vien/IssueDetailPage.jsx';
+import Products from './pages/products/index.jsx';
+import CartPage from './pages/cartPage/index.jsx';
+import PaymentPage from './pages/paymentPage/index.jsx';
 import ReportPage from './pages/admin/quan-tri-vien/ReportPage.jsx';
+import InvoiceManagementPage from './pages/admin/nhan-vien/InvoiceManagementPage.jsx';
+import InvoiceDetailPage from './pages/admin/nhan-vien/InvoiceDetailPage.jsx';
+import AccountLayout from './pages/member/AccountLayout.jsx';
+import OrderHistoryPage from './pages/member/OrderHistoryPage.jsx';
+import ProfilePage from './pages/member/ProfilePage.jsx';
+
 const router = createBrowserRouter([
-    {
-        path: '/',
-        element: <App />,
-        children: [
-            { path: '/', element: <HomePage /> },
-            { path: '/dang-nhap', element: <LoginPage /> },
-            { path: '/dang-ky', element: <RegisterPage /> },
-            { path: '/tim-kiem', element: <SearchPage /> },
-            { path: '/san-pham/:id', element: <ProductDetailPage /> },
-            { path: '/debug-login', element: <DebugLoginPage /> },
-        ],
-    },
-    {
+  {
+    path: '/',
+    element: <App />,
+    children: [
+      { path: '/', element: <HomePage /> },
+      { path: '/dang-nhap', element: <LoginPage /> },
+      { path: '/dang-ky', element: <RegisterPage /> },
+      { path: '/tim-kiem', element: <SearchPage /> },
+      { path: '/san-pham/:id', element: <ProductDetailPage /> },
+      { path: '/debug-login', element: <DebugLoginPage /> },
+      { path: '/product', element: <Products /> },
+      { path: '/cart', element: <CartPage /> },
+      { path: '/payment', element: <PaymentPage /> },
+      {
         element: <ProtectedRoute />,
         children: [
-            {
-                path: '/admin',
-                element: <AdminLayout />,
-                children: [
-                    { path: 'dashboard', element: <DashboardPage /> },
-                    { path: 'dashboard-admin', element: <AdminDashboardPage /> },
+          {
+            path: 'tai-khoan',
+            element: <AccountLayout />,
+            children: [
+              { path: 'don-hang', element: <OrderHistoryPage /> },
+              { path: "thong-tin", element: <ProfilePage /> },
+            ]
+          }
+        ]
+      }
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: '/admin',
+        element: <AdminLayout />,
+        children: [
+          { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'dashboard-admin', element: <AdminDashboardPage /> },
 
-                    //Báo cáo
-                    { path: "bao-cao", element: <ReportPage /> },
+          //Báo cáo
+          { path: "bao-cao", element: <ReportPage /> },
+          // Đơn hàng
+          { path: 'don-hang', element: <OrderManagementPage /> },
+          { path: 'don-hang/:id', element: <OrderDetailPage /> },
+          { path: 'don-hang/sua/:id', element: <EditOrderPage /> },
+          { path: 'don-hang/tao-moi', element: <CreateOrderPage /> },
+          //Hoá đơn
+          { path: "hoa-don", element: <InvoiceManagementPage /> },
+          { path: "hoa-don/:id", element: <InvoiceDetailPage /> },
+          // Kho
+          { path: 'kho', element: <WarehouseManagementPage /> },
+          { path: 'kho/them', element: <AddProductPage /> },
+          { path: 'kho/:id', element: <ProductDetailAdminPage /> },
+          { path: 'kho/sua/:id', element: <EditProductPage /> },
 
-                    // Đơn hàng
-                    { path: 'don-hang', element: <OrderManagementPage /> },
-                    { path: 'don-hang/:id', element: <OrderDetailPage /> },
-                    { path: 'don-hang/sua/:id', element: <EditOrderPage /> },
-                    { path: 'don-hang/tao-moi', element: <CreateOrderPage /> },
+          // Tư vấn & Phiếu nhập xuất
+          { path: 'tu-van', element: <ConsultationPage /> },
+          { path: 'phieu-nhap-xuat', element: <GoodsReceiptIssuePage /> },
+          { path: 'phieu-nhap/them', element: <CreateReceiptPage /> },
+          { path: 'phieu-xuat/them', element: <CreateIssuePage /> },
 
-                    // Kho
-                    { path: 'kho', element: <WarehouseManagementPage /> },
-                    { path: 'kho/them', element: <AddProductPage /> },
-                    { path: 'kho/:id', element: <ProductDetailAdminPage /> },
-                    { path: 'kho/sua/:id', element: <EditProductPage /> },
+          // Nhân viên
+          { path: 'nhan-vien', element: <EmployeeManagementPage /> },
+          { path: 'nhan-vien/them', element: <AddEmployeePage /> },
+          { path: 'nhan-vien/sua/:id', element: <EditEmployeePage /> },
 
-                    // Tư vấn & Phiếu nhập xuất
-                    { path: 'tu-van', element: <ConsultationPage /> },
-                    { path: 'phieu-nhap-xuat', element: <GoodsReceiptIssuePage /> },
-                    { path: 'phieu-nhap/them', element: <CreateReceiptPage /> },
-                    { path: "phieu-nhap/:id", element: <ReceiptDetailPage /> },
-                    { path: 'phieu-xuat/them', element: <CreateIssuePage /> },
-                    { path: "phieu-xuat/:id", element: <IssueDetailPage /> },
-
-                    // Nhân viên
-                    { path: 'nhan-vien', element: <EmployeeManagementPage /> },
-                    { path: 'nhan-vien/them', element: <AddEmployeePage /> },
-                    { path: 'nhan-vien/sua/:id', element: <EditEmployeePage /> },
-
-                    // Nhà cung cấp
-                    { path: 'nha-cung-cap', element: <SupplierManagementPage /> },
-                    { path: 'nha-cung-cap/them', element: <AddSupplierPage /> },
-                    { path: 'nha-cung-cap/sua/:id', element: <EditSupplierPage /> },
+          // Nhà cung cấp
+          { path: 'nha-cung-cap', element: <SupplierManagementPage /> },
+          { path: 'nha-cung-cap/them', element: <AddSupplierPage /> },
+          { path: 'nha-cung-cap/sua/:id', element: <EditSupplierPage /> },
 
 
-                ],
-            },
         ],
-    },
+      },
+    ],
+  },
 ]);
 export default router;
