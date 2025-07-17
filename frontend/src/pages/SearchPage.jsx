@@ -5,14 +5,16 @@ import ProductCard from '../components/ProductCard'; // Import component dùng c
 const searchResults = [
     { id: 1, name: 'Paracetamol 500mg', price: '15.000đ', imageUrl: 'https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=PharmaCare' },
     { id: 2, name: 'Panadol Extra', price: '25.000đ', imageUrl: 'https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=PharmaCare' },
+    { id: 3, name: 'Paracetamol 500mg', price: '15.000đ', imageUrl: 'https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=PharmaCare' },
+    { id: 4, name: 'Panadol Extra', price: '25.000đ', imageUrl: 'https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=PharmaCare' },
 ];
+
 
 function SearchPage() {
     return (
         <div className="p-8">
             <div className="max-w-7xl mx-auto">
                 <h1 className="text-3xl font-bold text-gray-800 mb-6">Kết Quả Tìm Kiếm</h1>
-
                 {/* Filters Section */}
                 <div className="bg-white p-6 rounded-2xl shadow-lg mb-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 items-end">

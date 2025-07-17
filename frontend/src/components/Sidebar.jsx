@@ -1,3 +1,15 @@
+import React from "react";
+import { NavLink } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
+import {
+  faHome,
+  faSearch,
+  faUserPlus,
+  faSignInAlt,
+  faBoxOpen,
+} from "@fortawesome/free-solid-svg-icons";
+import { useLocation } from "react-router-dom";
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; // Dùng context để lấy thông tin user
@@ -17,6 +29,11 @@ const NavItem = ({ to, icon, children }) => (
     <NavLink
       to={to}
       end={to === "/"}
+      className={({ isActive }) =>
+        `flex items-center space-x-3 p-3 rounded-lg text-gray-700 font-medium transition-colors hover:bg-gray-100 ${
+          isActive ? "bg-blue-50 text-blue-600" : ""
+        }`
+      }
       className={({ isActive }) => `flex items-center space-x-3 p-3 rounded-lg font-medium transition-colors hover:bg-gray-100 ${isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
         }`}
     >
@@ -27,6 +44,11 @@ const NavItem = ({ to, icon, children }) => (
 );
 
 function Sidebar() {
+  const location = useLocation();
+
+  if (location.pathname === "/product") {
+    return null;
+  }
   // Lấy user và hàm logout từ AuthContext
   const { user, logout } = useAuth();
 
@@ -35,6 +57,23 @@ function Sidebar() {
       <div className="p-4 border-b">
         <h3 className="text-lg font-semibold text-gray-800">Menu chính</h3>
       </div>
+      <nav className="p-4">
+        <ul className="space-y-2 list-none">
+          <NavItem to="/" icon={faHome}>
+            Trang chủ
+          </NavItem>
+          <NavItem to="/product" icon={faBoxOpen}>
+            Sản Phẩm
+          </NavItem>
+          <NavItem to="/tim-kiem" icon={faSearch}>
+            Tìm kiếm thuốc
+          </NavItem>
+          <NavItem to="/dang-ky" icon={faUserPlus}>
+            Đăng ký
+          </NavItem>
+          <NavItem to="/dang-nhap" icon={faSignInAlt}>
+            Đăng nhập
+          </NavItem>
 
       {/* Menu chính, flex-grow để chiếm không gian ở giữa */}
       <nav className="p-4 flex-grow">

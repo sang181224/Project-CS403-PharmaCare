@@ -1,5 +1,8 @@
 import React from 'react';
 import ProductCard from '../components/ProductCard'; // Import component ProductCard
+import HotProducts from '../components/hot-products';
+import HomeTypeProducts from '../components/home-type-products';
+import HomeBanner from '../components/home-banner';
 
 // Dữ liệu mẫu cho các sản phẩm
 const featuredProducts = [
@@ -13,16 +16,17 @@ function HomePage() {
     return (
         <>
             {/* Hero Section */}
-            <section className="bg-gradient-to-r from-blue-500 to-purple-600 text-white py-16 px-8">
+            {/* <section className="bg-gradient-to-r from-blue-500 to-purple-600 text-white py-16 px-8">
                 <div className="max-w-7xl mx-auto">
                     <h2 className="text-4xl lg:text-5xl font-bold mb-4">Chào mừng đến với PharmaCare</h2>
                     <p className="text-xl text-gray-200">Hệ thống quản lý nhà thuốc hiện đại và đáng tin cậy.</p>
                 </div>
-            </section>
+            </section> */}
+            <HomeBanner/>
 
             {/* Featured Products */}
             <div className="p-8">
-                <section className="max-w-7xl mx-auto">
+                {/* <section className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-2xl font-bold text-gray-800">Sản phẩm nổi bật</h3>
                         <a href="#" className="text-blue-600 hover:text-blue-800 font-medium">
@@ -30,12 +34,14 @@ function HomePage() {
                         </a>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {/* Dùng hàm map để hiển thị danh sách sản phẩm, tái sử dụng component ProductCard */}
+                        Dùng hàm map để hiển thị danh sách sản phẩm, tái sử dụng component ProductCard
                         {featuredProducts.map(product => (
                             <ProductCard key={product.id} product={product} />
                         ))}
                     </div>
-                </section>
+                </section> */}
+                <HotProducts/>
+                <HomeTypeProducts/>
             </div>
         </>
     );

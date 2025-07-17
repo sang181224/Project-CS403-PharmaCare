@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom'; // <-- Import Outlet
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
+import Footer from './components/footer';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Outlet /> {/* <-- Thay thế HomePage bằng Outlet */}
         </main>
       </div>
+      <Footer/>
     </div>
   );
 }
