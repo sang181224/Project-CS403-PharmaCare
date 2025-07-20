@@ -14,7 +14,7 @@ const SECRET_KEY = 'your_very_secret_key_for_pharmacare';
 
 // --- CẤU HÌNH MIDDLEWARE TOÀN CỤC ---
 app.use(cors({
-    origin: 'https://ten-du-an-cua-ban.vercel.app' // Thay bằng địa chỉ Vercel của bạn
+    origin: 'https://project-cs-403-pharma-care.vercel.app'
 }));
 app.use(express.json());
 
