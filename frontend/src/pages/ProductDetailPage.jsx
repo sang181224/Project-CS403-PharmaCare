@@ -26,7 +26,7 @@ function ProductDetailPage() {
         const fetchProduct = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`http://localhost:3000/api/public/products/${id}`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/public/products/${id}`);
                 const data = await response.json();
                 if (response.ok) setProduct(data);
             } catch (error) {

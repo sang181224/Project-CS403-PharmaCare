@@ -57,7 +57,7 @@ function OrderManagementPage() {
                 limit: 10
             }).toString();
 
-            const response = await fetch(`http://localhost:3000/api/orders?${queryParams}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders?${queryParams}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const result = await response.json();

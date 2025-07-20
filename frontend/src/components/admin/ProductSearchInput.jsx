@@ -23,7 +23,7 @@ function ProductSearchInput({ onProductSelect }) {
                 setIsLoading(true);
                 try {
                     const token = localStorage.getItem('authToken');
-                    const response = await fetch(`http://localhost:3000/api/products?search=${debouncedSearchTerm}&limit=5`, {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products?search=${debouncedSearchTerm}&limit=5`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const data = await response.json();

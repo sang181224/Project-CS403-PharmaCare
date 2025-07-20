@@ -8,7 +8,7 @@ function IssueDetailPage() {
     useEffect(() => {
         const fetchIssue = async () => {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`http://localhost:3000/api/issues/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issues/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

@@ -8,7 +8,7 @@ function MyConsultationsPage() {
         const fetchConsultations = async () => {
             const token = localStorage.getItem('authToken');
             try {
-                const response = await fetch('http://localhost:3000/api/my/consultations', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/my/consultations`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();

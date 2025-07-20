@@ -21,7 +21,7 @@ function EditEmployeePage() {
         setError('');
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`http://localhost:3000/api/admin/employees/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/employees/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) {
@@ -50,7 +50,7 @@ function EditEmployeePage() {
         e.preventDefault();
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`http://localhost:3000/api/admin/employees/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/employees/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 // Chỉ gửi những trường cần thiết

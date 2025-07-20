@@ -21,7 +21,7 @@ function EditSupplierPage() {
         const fetchSupplier = async () => {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`http://localhost:3000/api/admin/suppliers/${id}`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/suppliers/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -48,7 +48,7 @@ function EditSupplierPage() {
         e.preventDefault();
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`http://localhost:3000/api/admin/suppliers/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/suppliers/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

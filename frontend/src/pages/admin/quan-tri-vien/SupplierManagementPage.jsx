@@ -27,7 +27,7 @@ function SupplierManagementPage() {
         try {
             const token = localStorage.getItem('authToken');
             const queryParams = new URLSearchParams({ search: debouncedSearchTerm, page: page, limit: 10 }).toString();
-            const response = await fetch(`http://localhost:3000/api/admin/suppliers?${queryParams}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/suppliers?${queryParams}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const result = await response.json();
@@ -50,7 +50,7 @@ function SupplierManagementPage() {
         if (window.confirm(`Bạn có chắc muốn xóa nhà cung cấp "${supplierName}"?`)) {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`http://localhost:3000/api/admin/suppliers/${supplierId}`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/suppliers/${supplierId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

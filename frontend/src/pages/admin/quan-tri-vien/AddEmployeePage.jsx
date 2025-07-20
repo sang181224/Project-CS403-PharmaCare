@@ -21,7 +21,7 @@ function AddEmployeePage() {
 
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('http://localhost:3000/api/admin/employees', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/employees`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

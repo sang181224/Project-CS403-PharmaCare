@@ -36,7 +36,7 @@ function ProductsPage() {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const res = await fetch('http://localhost:3000/api/public/categories');
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/public/categories`);
                 if (res.ok) {
                     setCategories(await res.json());
                 }
@@ -68,7 +68,7 @@ function ProductsPage() {
         };
         const queryParams = new URLSearchParams(activeFilters).toString();
         try {
-            const res = await fetch(`http://localhost:3000/api/public/products?${queryParams}`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/public/products?${queryParams}`);
             const result = await res.json();
             if (res.ok) {
                 setProducts(result.data);

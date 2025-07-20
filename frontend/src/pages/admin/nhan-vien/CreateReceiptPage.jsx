@@ -15,7 +15,7 @@ function CreateReceiptPage() {
         const fetchSuppliers = async () => {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch('http://localhost:3000/api/admin/suppliers', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/suppliers`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -62,7 +62,7 @@ function CreateReceiptPage() {
         e.preventDefault();
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch('http://localhost:3000/api/receipts', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/receipts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ receiptInfo: { ...receiptInfo, tong_tien: totalAmount }, items })
