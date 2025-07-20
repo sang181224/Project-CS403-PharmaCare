@@ -13,7 +13,7 @@ function HomePage() {
         const fetchHotProducts = async () => {
             try {
                 // Gọi đến API mới của trang chủ
-                const response = await fetch('http://localhost:3000/api/public/homepage-products?limit=8');
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/public/homepage-products?limit=8`);
                 const result = await response.json(); // API này trả về mảng trực tiếp
                 if (response.ok) {
                     setHotProducts(result);
