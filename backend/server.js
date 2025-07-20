@@ -13,7 +13,9 @@ const PORT = 3000;
 const SECRET_KEY = 'your_very_secret_key_for_pharmacare';
 
 // --- CẤU HÌNH MIDDLEWARE TOÀN CỤC ---
-app.use(cors());
+app.use(cors({
+    origin: 'https://ten-du-an-cua-ban.vercel.app' // Thay bằng địa chỉ Vercel của bạn
+}));
 app.use(express.json());
 
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -134,7 +136,7 @@ app.post('/api/login', async (req, res) => {
         const payload = { id: user.id, hoTen: user.hoTen, email: user.email, vaiTro: user.vaiTro };
         const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '1h' });
         res.status(200).json({ message: 'Đăng nhập thành công!', token, user: payload });
-        
+
     } catch (error) {
         res.status(500).json({ error: 'Lỗi server.' });
     }
@@ -355,7 +357,7 @@ app.put('/api/products/:id', upload.single('hinh_anh'), async (req, res) => {
 app.put('/api/products/:id/archive', checkAuth, async (req, res) => {
     try {
         const productId = req.params.id;
-        
+
         // Thay vì DELETE, chúng ta UPDATE trạng thái
         const sql = "UPDATE products SET trang_thai = 'Ngừng kinh doanh', so_luong_ton = 0 WHERE id = ?";
         const [result] = await pool.query(sql, [productId]);
@@ -363,7 +365,7 @@ app.put('/api/products/:id/archive', checkAuth, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Không tìm thấy sản phẩm.' });
         }
-        
+
         // Cũng có thể xóa các lô hàng liên quan nếu cần
         await pool.query("DELETE FROM lo_thuoc WHERE id_san_pham = ?", [productId]);
 
@@ -376,7 +378,7 @@ app.put('/api/products/:id/archive', checkAuth, async (req, res) => {
 app.put('/api/products/:id/restore', checkAuth, async (req, res) => {
     try {
         const productId = req.params.id;
-        
+
         // Đổi trạng thái về "Hết hàng", nhân viên sẽ cần nhập lô mới để bán
         const sql = "UPDATE products SET trang_thai = 'Hết hàng' WHERE id = ?";
         const [result] = await pool.query(sql, [productId]);
@@ -384,7 +386,7 @@ app.put('/api/products/:id/restore', checkAuth, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Không tìm thấy sản phẩm.' });
         }
-        
+
         res.status(200).json({ message: 'Đã đưa sản phẩm kinh doanh trở lại!' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -792,7 +794,7 @@ app.post('/api/receipts', checkAuth, async (req, res) => {
             `;
             await connection.query(updateProductSql, [newQuantity, newQuantity, newQuantity, item.id_san_pham]);
         }
-        
+
         await connection.commit();
         res.status(201).json({ message: `Tạo phiếu nhập ${receiptCode} thành công!`, receiptId: newReceiptId });
 
