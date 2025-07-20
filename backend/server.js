@@ -24,11 +24,16 @@ app.use('/uploads', express.static(uploadsDir));
 
 
 // --- CẤU HÌNH DATABASE (SỬ DỤNG CONNECTION POOL VÀ PROMISE) ---
+// --- CẤU HÌNH DATABASE (SỬ DỤNG BIẾN MÔI TRƯỜNG) ---
 const pool = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'pharmacare',
+    host: process.env.DB_HOST,       // Sẽ đọc từ biến môi trường
+    user: process.env.DB_USER,       // Sẽ đọc từ biến môi trường
+    password: process.env.DB_PASSWORD, // Sẽ đọc từ biến môi trường
+    database: process.env.DB_DATABASE, // Sẽ đọc từ biến môi trường
+    port: process.env.DB_PORT,         // Sẽ đọc từ biến môi trường
+    ssl: {
+        rejectUnauthorized: true
+    },
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
