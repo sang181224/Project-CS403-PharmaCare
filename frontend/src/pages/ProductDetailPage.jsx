@@ -1,61 +1,144 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faShoppingCart } from '@fortawesome/free-solid-svg-icons';
 
-// Giả lập dữ liệu sản phẩm (sau này sẽ lấy từ API)
-const productsData = [
-    { id: '1', name: 'Paracetamol 500mg', category: 'Thuốc giảm đau', price: '15.000đ / Hộp', manufacturer: 'Traphaco', description: 'Paracetamol là thuốc giảm đau, hạ sốt hiệu quả và an toàn...', imageUrl: 'https://via.placeholder.com/600x600.png/EBF4FF/76A9FA?text=PharmaCare' },
-    { id: '2', name: 'Vitamin C 1000mg', category: 'Vitamin', price: '45.000đ / Tuýp', manufacturer: 'DHG Pharma', description: 'Vitamin C giúp tăng cường sức đề kháng cho cơ thể...', imageUrl: 'https://via.placeholder.com/600x600.png/ECFDF5/6EE7B7?text=PharmaCare' },
-    // Thêm các sản phẩm khác nếu cần
-];
+// Component con cho các Tab
+const InfoTab = ({ title, content }) => (
+    <div>
+        <h3 className="text-xl font-bold text-gray-800 mb-3">{title}</h3>
+        <div className="prose max-w-none text-gray-600">
+            <p>{content || 'Thông tin đang được cập nhật.'}</p>
+        </div>
+    </div>
+);
 
 
 function ProductDetailPage() {
-    const { id } = useParams(); // Lấy `id` từ URL, ví dụ: /san-pham/1 -> id = "1"
+    const { id } = useParams();
     const [product, setProduct] = useState(null);
-    const [activeTab, setActiveTab] = useState('description');
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('chi_dinh'); // Tab mặc định
+    const { addToCart } = useCart();
 
     useEffect(() => {
-        // Tìm sản phẩm trong dữ liệu mẫu dựa trên id từ URL
-        const foundProduct = productsData.find(p => p.id === id);
-        setProduct(foundProduct);
-    }, [id]); // Chạy lại mỗi khi id thay đổi
+        const fetchProduct = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch(`http://localhost:3000/api/public/products/${id}`);
+                const data = await response.json();
+                if (response.ok) setProduct(data);
+            } catch (error) {
+                console.error("Lỗi:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        window.scrollTo(0, 0); // Tự động cuộn lên đầu trang
+        fetchProduct();
+    }, [id]);
 
-    if (!product) {
-        return <div className="p-8 text-center">Đang tải thông tin sản phẩm...</div>;
-    }
+    if (isLoading) return <div className="p-8 text-center">Đang tải...</div>;
+    if (!product) return <div className="p-8 text-center">Không tìm thấy sản phẩm.</div>;
+
+    const tabs = [
+        { id: 'chi_dinh', title: 'Chỉ định', content: product.chi_dinh },
+        { id: 'cach_dung', title: 'Cách dùng - Liều dùng', content: product.cach_dung },
+        { id: 'thanh_phan', title: 'Thành phần', content: product.thanh_phan },
+        { id: 'tac_dung_phu', title: 'Tác dụng phụ', content: product.tac_dung_phu },
+        { id: 'chong_chi_dinh', title: 'Chống chỉ định', content: product.chong_chi_dinh },
+    ];
 
     return (
-        <div className="p-8">
-            <div className="max-w-7xl mx-auto">
-                {/* Breadcrumbs */}
-                <nav className="text-sm mb-6"><ol className="list-none p-0 inline-flex space-x-2"><li className="flex items-center"><Link to="/" className="text-gray-500 hover:text-blue-600">Trang chủ</Link></li><li className="flex items-center"><i className="fas fa-chevron-right text-xs text-gray-400 mx-2"></i><span className="text-gray-800 font-medium">{product.name}</span></li></ol></nav>
-
-                {/* Product Main Info */}
-                <div className="bg-white p-8 rounded-2xl shadow-lg mb-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                        <div> {/* Image Gallery */}
-                            <div className="w-full h-96 bg-gray-100 rounded-xl mb-4"><img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover rounded-xl" /></div>
+        <div className="bg-gradient-to-br from-gray-50 to-blue-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+                        {/* Cột ảnh */}
+                        <div className="sticky top-24">
+                            <div className="relative group overflow-hidden rounded-xl">
+                                <img
+                                    src={product.hinh_anh}
+                                    alt={product.ten_thuoc}
+                                    className="w-full h-auto object-contain bg-white rounded-xl shadow-lg border border-gray-100 transition-all duration-300 group-hover:shadow-2xl"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                            </div>
                         </div>
-                        <div> {/* Product Details & Actions */}
-                            <p className="text-blue-600 font-semibold mb-2">{product.category}</p>
-                            <h1 className="text-4xl font-bold text-gray-900 mb-2">{product.name}</h1>
-                            <p className="text-gray-500 mb-4">Nhà sản xuất: <span className="font-medium text-gray-700">{product.manufacturer}</span></p>
-                            <p className="text-4xl font-bold text-green-600 mb-6">{product.price}</p>
-                            <p className="text-gray-700 leading-relaxed mb-6">{product.description}</p>
-                            <button className="w-full flex items-center justify-center py-3 px-6 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors"><i className="fas fa-shopping-cart mr-2"></i> Thêm vào giỏ hàng</button>
+
+                        {/* Cột thông tin */}
+                        <div className="space-y-6">
+                            <div>
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 uppercase tracking-wide">
+                                    {product.danh_muc}
+                                </span>
+                                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mt-4 leading-tight">
+                                    {product.ten_thuoc}
+                                </h1>
+                                <p className="text-gray-600 mt-3 flex items-center">
+                                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                                    Nhà sản xuất: <span className="font-medium ml-1">{product.nha_san_xuat}</span>
+                                </p>
+                            </div>
+
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+                                <p className="text-sm text-blue-600 font-medium mb-1">Giá bán</p>
+                                <p className="text-4xl font-bold text-blue-700">
+                                    {Number(product.gia_ban).toLocaleString('vi-VN')}đ
+                                </p>
+                            </div>
+
+                            <div className="bg-gray-50 p-6 rounded-xl">
+                                <h3 className="text-lg font-semibold text-gray-800 mb-3">Mô tả sản phẩm</h3>
+                                <p className="text-gray-700 leading-relaxed">
+                                    {product.mo_ta || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => addToCart(product)}
+                                disabled={product.so_luong_ton === 0}
+                                className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${product.so_luong_ton > 0
+                                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white'
+                                        : 'bg-gray-400 text-white cursor-not-allowed'
+                                    }`}
+                            >
+                                <FontAwesomeIcon icon={faShoppingCart} className="mr-3" />
+                                {product.so_luong_ton > 0 ? 'Thêm vào giỏ hàng' : 'Đã hết hàng'}
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Detailed Info Tabs */}
-                <div className="bg-white p-8 rounded-2xl shadow-lg">
-                    <div className="border-b border-gray-200 mb-6"><nav className="flex space-x-8 -mb-px">
-                        <button onClick={() => setActiveTab('description')} className={`py-4 px-1 border-b-2 font-medium text-lg ${activeTab === 'description' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Mô tả chi tiết</button>
-                        <button onClick={() => setActiveTab('usage')} className={`py-4 px-1 border-b-2 font-medium text-lg ${activeTab === 'usage' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Cách dùng</button>
-                    </nav></div>
-                    <div>
-                        {activeTab === 'description' && <div>Nội dung chi tiết về sản phẩm {product.name}...</div>}
-                        {activeTab === 'usage' && <div>Hướng dẫn cách dùng và liều lượng cho sản phẩm {product.name}...</div>}
+                {/* Khu vực thông tin chi tiết dạng Tab */}
+                <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 mt-8">
+                    <div className="border-b border-gray-200 mb-8">
+                        <nav className="-mb-px flex space-x-8 overflow-x-auto">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`whitespace-nowrap py-4 px-2 border-b-3 font-semibold text-sm transition-all duration-300 relative ${activeTab === tab.id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                >
+                                    {tab.title}
+                                    {activeTab === tab.id && (
+                                        <span className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-blue-500 rounded-full"></span>
+                                    )}
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+
+                    <div className="min-h-[200px]">
+                        {tabs.map(tab => activeTab === tab.id && (
+                            <div key={tab.id} className="animate-fade-in">
+                                <InfoTab title={tab.title} content={tab.content} />
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

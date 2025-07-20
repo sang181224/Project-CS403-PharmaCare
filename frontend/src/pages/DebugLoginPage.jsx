@@ -1,4 +1,5 @@
 import React from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 function DebugLoginPage() {
@@ -20,7 +21,7 @@ function DebugLoginPage() {
                 localStorage.setItem('authToken', result.token);
                 localStorage.setItem('user', JSON.stringify(result.user));
 
-                alert(`Đã đăng nhập với vai trò: ${result.user.vaiTro}.`);
+                toast.success(`Đã đăng nhập với vai trò: ${result.user.vaiTro}.`);
 
                 // Chuyển hướng đến đúng trang
                 let redirectUrl = '/';
@@ -30,10 +31,10 @@ function DebugLoginPage() {
                 navigate(redirectUrl);
                 window.location.reload();
             } else {
-                alert('Lỗi từ server debug: ' + result.error);
+                toast.error('Lỗi từ server debug: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối đến server debug.');
+            toast.error('Lỗi kết nối đến server debug.');
         }
     };
 

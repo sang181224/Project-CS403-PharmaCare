@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 
 function AddSupplierPage() {
@@ -29,13 +30,13 @@ function AddSupplierPage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate('/admin/nha-cung-cap');
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối đến server.');
+            toast.error('Lỗi kết nối đến server.');
         }
     };
 

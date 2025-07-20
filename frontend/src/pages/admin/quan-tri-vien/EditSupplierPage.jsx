@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
 function EditSupplierPage() {
@@ -31,7 +32,7 @@ function EditSupplierPage() {
                 }
             } catch (error) {
                 console.error("Lỗi khi tải thông tin nhà cung cấp:", error);
-                alert("Không thể tải dữ liệu nhà cung cấp.");
+                toast.error("Không thể tải dữ liệu nhà cung cấp.");
             } finally {
                 setIsLoading(false);
             }
@@ -57,13 +58,13 @@ function EditSupplierPage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate('/admin/nha-cung-cap');
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối đến server.');
+            toast.error('Lỗi kết nối đến server.');
         }
     };
 

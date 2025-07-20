@@ -1,19 +1,42 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+// THÊM 'Link' VÀO DÒNG IMPORT NÀY
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPills, faUser, faShoppingCart } from '@fortawesome/free-solid-svg-icons';
+import { faPills, faUser, faShoppingCart, faSearch, faSignOutAlt, faUserCircle } from '@fortawesome/free-solid-svg-icons';
 
-// Component nhận thêm prop 'variant', mặc định là 'public'
 function Header({ variant = 'public' }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { cart, cartItemCount } = useCart();
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  // Xử lý đóng menu khi click ra ngoài
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileMenuRef]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/product?search=${searchTerm}`);
+    }
+  };
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-30">
       <div className="max-w-full mx-auto px-6">
         <div className="flex justify-between items-center py-3">
-          
-          {/* Logo & Tên hệ thống (Luôn hiển thị) */}
+          {/* Logo */}
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <NavLink to="/"><FontAwesomeIcon icon={faPills} className="text-white text-xl" /></NavLink>
@@ -24,34 +47,50 @@ function Header({ variant = 'public' }) {
             </div>
           </div>
 
-          {/* Phần bên phải của Header */}
+          {/* Phần bên phải */}
           <div className="flex items-center space-x-6">
-            
-            {/* Chỉ hiển thị Tìm kiếm & Giỏ hàng nếu là trang public */}
             {variant === 'public' && (
               <div className="flex items-center space-x-6">
+                <form onSubmit={handleSearch} className="relative hidden md:block">
+                  <input type="text" placeholder="Tìm kiếm thuốc...." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64 pl-4 pr-10 py-2 border rounded-full text-sm" />
+                  <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600"><FontAwesomeIcon icon={faSearch} /></button>
+                </form>
                 <div className="relative">
-                  <input type="text" placeholder="Tìm kiếm thuốc...." className="w-64 pl-4 pr-10 py-2 border rounded-full text-sm" />
-                  <i className="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                </div>
-                <div className="relative">
-                  <FontAwesomeIcon icon={faShoppingCart} className="text-2xl text-gray-600 cursor-pointer" />
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">3</span>
+                  <NavLink to="/cart"><FontAwesomeIcon icon={faShoppingCart} className="text-2xl text-gray-600" /></NavLink>
+                  {cartItemCount > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{cartItemCount}</span>}
                 </div>
               </div>
             )}
 
-            {/* Thông tin người dùng (Luôn hiển thị) */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <FontAwesomeIcon icon={faUser} className="text-blue-600 text-lg" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800">{user ? user.hoTen : 'Khách vãng lai'}</p>
-                <p className="text-xs text-gray-600">{user ? (user.vaiTro || 'Thành viên').replace('_', ' ') : 'Chưa đăng nhập'}</p>
-              </div>
+            {/* Thông tin người dùng và Menu Dropdown */}
+            <div className="relative" ref={profileMenuRef}>
+              <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <FontAwesomeIcon icon={faUser} className="text-blue-600 text-lg" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800 text-left">{user ? user.hoTen : 'Khách vãng lai'}</p>
+                  <p className="text-xs text-gray-600 capitalize text-left">{user ? (user.vaiTro || 'Thành viên').replace('_', ' ') : 'Chưa đăng nhập'}</p>
+                </div>
+              </button>
+
+              {/* Menu Dropdown */}
+              {isProfileMenuOpen && user && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                  {user.vaiTro === 'thanh_vien' && (
+                    <Link to="/tai-khoan/don-hang" onClick={() => setIsProfileMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <FontAwesomeIcon icon={faUserCircle} className="mr-2" />
+                      Tài khoản của tôi
+                    </Link>
+                  )}
+                  <button onClick={logout} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
             </div>
-            
+
           </div>
         </div>
       </div>

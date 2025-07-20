@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext(null);
 
@@ -24,7 +25,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.clear();
         setUser(null);
         setToken(null);
-        alert('Bạn đã đăng xuất.');
+        toast.success('Bạn đã đăng xuất.');
         window.location.href = '/dang-nhap';
     };
 

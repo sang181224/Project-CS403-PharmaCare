@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserPlus, faPencilAlt, faUserLock, faUserCheck } from '@fortawesome/free-solid-svg-icons';
 import Pagination from '../../../components/Pagination';
+import ConfirmModal from '../../../components/ConfirmModal';
+import toast from 'react-hot-toast';
 
 // Custom hook để trì hoãn việc tìm kiếm
 function useDebounce(value, delay) {
@@ -23,8 +25,11 @@ function EmployeeManagementPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [filters, setFilters] = useState({ search: '', status: '' });
     const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0 });
-
     const debouncedSearchTerm = useDebounce(filters.search, 500);
+
+    // State để quản lý Modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [employeeToAction, setEmployeeToAction] = useState(null);
 
     const fetchEmployees = useCallback(async (page) => {
         setIsLoading(true);
@@ -49,7 +54,7 @@ function EmployeeManagementPage() {
             }
         } catch (error) {
             console.error("Lỗi:", error);
-            alert(error.message);
+            toast.error(error.message || "Không thể tải danh sách nhân viên.");
         } finally {
             setIsLoading(false);
         }
@@ -68,28 +73,38 @@ function EmployeeManagementPage() {
         setPagination(prev => ({ ...prev, currentPage: pageNumber }));
     };
 
-    const handleToggleLockStatus = async (employee) => {
-        const newStatus = employee.trang_thai === 'hoat_dong' ? 'tam_khoa' : 'hoat_dong';
-        const actionText = newStatus === 'tam_khoa' ? 'khóa' : 'mở khóa';
-        if (window.confirm(`Bạn có chắc muốn ${actionText} tài khoản của ${employee.hoTen}?`)) {
-            try {
-                const token = localStorage.getItem('authToken');
-                const response = await fetch(`http://localhost:3000/api/admin/employees/${employee.id}/status`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ trang_thai: newStatus })
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    alert(result.message);
-                    fetchEmployees(pagination.currentPage);
-                } else {
-                    alert('Lỗi: ' + result.error);
-                }
-            } catch (error) {
-                alert('Lỗi kết nối đến server.');
+    // Hàm được gọi khi người dùng bấm "Xác nhận" trên Modal
+    const handleStatusConfirm = async () => {
+        if (!employeeToAction) return;
+
+        const newStatus = employeeToAction.trang_thai === 'hoat_dong' ? 'tam_khoa' : 'hoat_dong';
+
+        try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`http://localhost:3000/api/admin/employees/${employeeToAction.id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ trang_thai: newStatus })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                toast.success(result.message);
+                fetchEmployees(pagination.currentPage);
+            } else {
+                toast.error('Lỗi: ' + result.error);
             }
+        } catch (error) {
+            toast.error('Lỗi kết nối đến server.');
+        } finally {
+            setIsModalOpen(false);
+            setEmployeeToAction(null);
         }
+    };
+
+    // Hàm được gọi khi bấm icon Khóa/Mở khóa
+    const promptStatusChange = (employee) => {
+        setEmployeeToAction(employee);
+        setIsModalOpen(true);
     };
 
     return (
@@ -124,18 +139,27 @@ function EmployeeManagementPage() {
                         </thead>
                         <tbody>
                             {isLoading ? (
-                                <tr><td colSpan="5" className="text-center p-8">Đang tải...</td></tr>
+                                <tr><td colSpan="5" className="text-center p-8 text-gray-500">Đang tải...</td></tr>
                             ) : employees.length > 0 ? (
                                 employees.map((employee) => (
                                     <tr key={employee.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4"><div className="flex items-center space-x-3"><div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold uppercase">{employee.hoTen.charAt(0)}</div><div><p className="font-medium">{employee.hoTen}</p><p className="text-xs text-gray-500">{employee.email}</p></div></div></td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold uppercase">{employee.hoTen.charAt(0)}</div>
+                                                <div><p className="font-medium">{employee.hoTen}</p><p className="text-xs text-gray-500">{employee.email}</p></div>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4 capitalize">{employee.vaiTro.replace('_', ' ')}</td>
                                         <td className="px-6 py-4">{new Date(employee.ngayTao).toLocaleDateString('vi-VN')}</td>
-                                        <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-medium rounded-full ${employee.trang_thai === 'hoat_dong' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>{employee.trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Tạm khóa'}</span></td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${employee.trang_thai === 'hoat_dong' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
+                                                {employee.trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Tạm khóa'}
+                                            </span>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-center space-x-4 text-gray-500">
                                                 <Link to={`/admin/nhan-vien/sua/${employee.id}`} className="hover:text-purple-600" title="Sửa"><FontAwesomeIcon icon={faPencilAlt} /></Link>
-                                                <button onClick={() => handleToggleLockStatus(employee)} className={employee.trang_thai === 'hoat_dong' ? 'hover:text-red-600' : 'hover:text-green-600'} title={employee.trang_thai === 'hoat_dong' ? 'Khóa tài khoản' : 'Mở khóa'}>
+                                                <button onClick={() => promptStatusChange(employee)} className={employee.trang_thai === 'hoat_dong' ? 'hover:text-red-600' : 'hover:text-green-600'} title={employee.trang_thai === 'hoat_dong' ? 'Khóa tài khoản' : 'Mở khóa'}>
                                                     <FontAwesomeIcon icon={employee.trang_thai === 'hoat_dong' ? faUserLock : faUserCheck} />
                                                 </button>
                                             </div>
@@ -149,10 +173,18 @@ function EmployeeManagementPage() {
                     </table>
                 </div>
                 <div className="p-4 flex justify-between items-center border-t">
-                    <span className="text-sm">Hiển thị <span className="font-semibold">{employees.length}</span> trên <span className="font-semibold">{pagination.totalItems}</span> kết quả</span>
+                    <span className="text-sm text-gray-700">Hiển thị <span className="font-semibold">{employees.length}</span> trên <span className="font-semibold">{pagination.totalItems}</span> kết quả</span>
                     <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={handleStatusConfirm}
+                title={`Xác nhận ${employeeToAction?.trang_thai === 'hoat_dong' ? 'Khóa' : 'Mở khóa'} tài khoản`}
+                message={`Bạn có chắc chắn muốn ${employeeToAction?.trang_thai === 'hoat_dong' ? 'khóa' : 'mở khóa'} tài khoản của "${employeeToAction?.hoTen}" không?`}
+            />
         </>
     );
 }

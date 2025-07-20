@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPrint, faPencilAlt } from '@fortawesome/free-solid-svg-icons';
+import toast from 'react-hot-toast';
 
 // Hàm lấy màu cho trạng thái
 const getStatusColor = (status) => {
@@ -44,14 +45,14 @@ function OrderDetailPage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 // Chuyển hướng đến trang chi tiết hóa đơn vừa tạo
                 navigate(`/admin/hoa-don/${result.invoiceId}`);
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối.');
+            toast.error('Lỗi kết nối.');
         }
     };
     if (isLoading) return <div className="p-8">Đang tải...</div>;

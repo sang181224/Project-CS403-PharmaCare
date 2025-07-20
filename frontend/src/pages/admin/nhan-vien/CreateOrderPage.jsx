@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import toast from 'react-hot-toast';
 
 function CreateOrderPage() {
     const navigate = useNavigate();
@@ -39,7 +40,7 @@ function CreateOrderPage() {
     // Hàm thêm sản phẩm vào đơn hàng
     const handleAddItem = () => {
         if (!selectedProductId) {
-            alert("Vui lòng chọn một sản phẩm.");
+            toast.error("Vui lòng chọn một sản phẩm.");
             return;
         }
         const productToAdd = allProducts.find(p => p.id === parseInt(selectedProductId));
@@ -83,7 +84,7 @@ function CreateOrderPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (items.length === 0) {
-            alert("Vui lòng thêm sản phẩm vào đơn hàng.");
+            toast.error("Vui lòng thêm sản phẩm vào đơn hàng.");
             return;
         }
         try {
@@ -95,13 +96,13 @@ function CreateOrderPage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate('/admin/don-hang');
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối.');
+            toast.error('Lỗi kết nối.');
         }
     };
 

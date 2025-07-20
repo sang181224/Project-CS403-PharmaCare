@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faPencilAlt, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
 import Pagination from '../../../components/Pagination'; // Đảm bảo đường dẫn này đúng
+import toast from 'react-hot-toast';
 
 // Custom hook để trì hoãn việc tìm kiếm
 function useDebounce(value, delay) {
@@ -68,7 +69,7 @@ function OrderManagementPage() {
             }
         } catch (error) {
             console.error("Lỗi:", error);
-            alert("Không thể tải danh sách đơn hàng.");
+            toast.error("Không thể tải danh sách đơn hàng.");
         } finally {
             setIsLoading(false);
         }
@@ -95,7 +96,7 @@ function OrderManagementPage() {
     const handleDelete = async (orderId, orderCode) => {
         if (window.confirm(`Bạn có chắc muốn xóa đơn hàng ${orderCode}?`)) {
             // Logic xóa đơn hàng...
-            alert(`Đã xóa đơn hàng ${orderCode}`);
+            toast.success(`Đã xóa đơn hàng ${orderCode}`);
             fetchOrders(pagination.currentPage);
         }
     };

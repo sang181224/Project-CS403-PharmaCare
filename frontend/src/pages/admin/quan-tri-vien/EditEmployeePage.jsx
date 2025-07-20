@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
 function EditEmployeePage() {
@@ -57,13 +58,13 @@ function EditEmployeePage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate('/admin/nhan-vien');
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (err) {
-            alert('Lỗi kết nối đến server.');
+            toast.error('Lỗi kết nối đến server.');
         }
     };
 

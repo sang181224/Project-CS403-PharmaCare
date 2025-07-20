@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faPencilAlt, faTrash } from '@fortawesome/free-solid-svg-icons';
 import Pagination from '../../../components/Pagination';
+import toast from 'react-hot-toast';
 
 // Custom hook để trì hoãn việc tìm kiếm
 function useDebounce(value, delay) {
@@ -54,10 +55,14 @@ function SupplierManagementPage() {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
-                alert(result.message || result.error);
+                if (response.ok) {
+                    toast.success(result.message);
+                } else {
+                    toast.error(result.error);
+                }
                 if (response.ok) fetchSuppliers(1); // Tải lại danh sách từ trang 1
             } catch (error) {
-                alert('Lỗi kết nối đến server.');
+                toast.error('Lỗi kết nối đến server.');
             }
         }
     };

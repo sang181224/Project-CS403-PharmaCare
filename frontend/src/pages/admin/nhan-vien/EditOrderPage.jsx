@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
 function EditOrderPage() {
@@ -37,13 +38,13 @@ function EditOrderPage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate(`/admin/don-hang`); // Quay về trang danh sách
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối server.');
+            toast.error('Lỗi kết nối server.');
         }
     };
 

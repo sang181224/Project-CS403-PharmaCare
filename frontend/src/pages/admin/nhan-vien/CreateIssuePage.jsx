@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import toast from 'react-hot-toast';
 
 function CreateIssuePage() {
     const navigate = useNavigate();
@@ -85,13 +86,13 @@ function CreateIssuePage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate('/admin/phieu-nhap-xuat');
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối.');
+            toast.error('Lỗi kết nối.');
         }
     };
 

@@ -47,14 +47,6 @@ function EmployeeSidebar({ onLogout }) {
                     <NavItem to="/admin/cai-dat" icon={faCog}>Cài đặt Nhà thuốc</NavItem>
                 </ul>
             </nav>
-
-            {/* Nút đăng xuất luôn ở dưới cùng */}
-            <div className="p-4 border-t border-gray-700">
-                <button onClick={onLogout} className="w-full flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white">
-                    <FontAwesomeIcon icon={faSignOutAlt} className="fa-fw w-5 text-center" />
-                    <span>Đăng xuất</span>
-                </button>
-            </div>
         </aside>
     );
 }

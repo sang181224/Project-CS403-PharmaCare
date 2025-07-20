@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import Pagination from '../../../components/Pagination';
+import toast from 'react-hot-toast';
 
 // Custom hook để trì hoãn việc tìm kiếm
 function useDebounce(value, delay) {
@@ -50,7 +51,7 @@ function GoodsReceiptIssuePage() {
             }
         } catch (error) {
             console.error(`Lỗi tải dữ liệu cho tab ${tab}:`, error);
-            alert(error.message);
+            toast.error(error.message);
         } finally {
             setIsLoading(false);
         }

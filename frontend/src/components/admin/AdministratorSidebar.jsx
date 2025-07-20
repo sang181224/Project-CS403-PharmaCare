@@ -19,13 +19,6 @@ function AdministratorSidebar({ onLogout }) {
                     <NavItem to="/admin/nha-cung-cap" icon={faTruckLoading}>Quản lý Nhà cung cấp</NavItem>
                 </ul>
             </nav>
-            <div className="p-4 border-t border-gray-700">
-                {/* Nút Đăng xuất gọi hàm onLogout */}
-                <button onClick={onLogout} className="w-full flex items-center space-x-3 p-3 rounded-lg text-gray-300 hover:bg-gray-700">
-                    <FontAwesomeIcon icon={faSignOutAlt} className="fa-fw w-5" />
-                    <span>Đăng xuất</span>
-                </button>
-            </div>
         </aside>
     );
 }

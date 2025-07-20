@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 
 function AddProductPage() {
@@ -60,7 +61,7 @@ function AddProductPage() {
             const result = await response.json();
 
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate('/admin/kho'); // Quay về trang danh sách
             } else {
                 setError(result.error || 'Đã có lỗi xảy ra.');

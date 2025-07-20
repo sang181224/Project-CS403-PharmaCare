@@ -8,7 +8,6 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
-import SearchPage from './pages/SearchPage.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import DebugLoginPage from './pages/DebugLoginPage.jsx';
 
@@ -35,15 +34,20 @@ import EditEmployeePage from './pages/admin/quan-tri-vien/EditEmployeePage.jsx';
 import SupplierManagementPage from './pages/admin/quan-tri-vien/SupplierManagementPage.jsx';
 import AddSupplierPage from './pages/admin/quan-tri-vien/AddSupplierPage.jsx';
 import EditSupplierPage from './pages/admin/quan-tri-vien/EditSupplierPage.jsx';
-import Products from './pages/products/index.jsx';
-import CartPage from './pages/cartPage/index.jsx';
-import PaymentPage from './pages/paymentPage/index.jsx';
 import ReportPage from './pages/admin/quan-tri-vien/ReportPage.jsx';
 import InvoiceManagementPage from './pages/admin/nhan-vien/InvoiceManagementPage.jsx';
 import InvoiceDetailPage from './pages/admin/nhan-vien/InvoiceDetailPage.jsx';
 import AccountLayout from './pages/member/AccountLayout.jsx';
 import OrderHistoryPage from './pages/member/OrderHistoryPage.jsx';
 import ProfilePage from './pages/member/ProfilePage.jsx';
+import ProductsPage from './pages/ProductsPage.jsx';
+import ReceiptDetailPage from './pages/admin/nhan-vien/ReceiptDetailPage.jsx';
+import IssueDetailPage from './pages/admin/nhan-vien/IssueDetailPage.jsx';
+import CartPage from './pages/CartPage.jsx';
+import PaymentPage from './pages/PaymentPage.jsx';
+import MemberOrderDetailPage from './pages/member/MemberOrderDetailPage.jsx';
+import ConsultationRequestPage from './pages/ConsultationRequestPage.jsx';
+import MyConsultationsPage from './pages/MyConsultationsPage.jsx';
 
 const router = createBrowserRouter([
   {
@@ -53,12 +57,13 @@ const router = createBrowserRouter([
       { path: '/', element: <HomePage /> },
       { path: '/dang-nhap', element: <LoginPage /> },
       { path: '/dang-ky', element: <RegisterPage /> },
-      { path: '/tim-kiem', element: <SearchPage /> },
       { path: '/san-pham/:id', element: <ProductDetailPage /> },
+      { path: "/tu-van", element: <ConsultationRequestPage /> },
       { path: '/debug-login', element: <DebugLoginPage /> },
-      { path: '/product', element: <Products /> },
-      { path: '/cart', element: <CartPage /> },
-      { path: '/payment', element: <PaymentPage /> },
+      { path: "/product", element: <ProductsPage /> },
+      { path: "/cart", element: <CartPage /> },
+      { path: "/payment", element: <PaymentPage /> },
+
       {
         element: <ProtectedRoute />,
         children: [
@@ -67,7 +72,9 @@ const router = createBrowserRouter([
             element: <AccountLayout />,
             children: [
               { path: 'don-hang', element: <OrderHistoryPage /> },
+              { path: "don-hang/:id", element: <MemberOrderDetailPage /> },
               { path: "thong-tin", element: <ProfilePage /> },
+              { path: "tu-van", element: <MyConsultationsPage /> },
             ]
           }
         ]
@@ -104,8 +111,15 @@ const router = createBrowserRouter([
           { path: 'tu-van', element: <ConsultationPage /> },
           { path: 'phieu-nhap-xuat', element: <GoodsReceiptIssuePage /> },
           { path: 'phieu-nhap/them', element: <CreateReceiptPage /> },
+          {
+            path: 'phieu-nhap/:id', // <-- THÊM ROUTE NÀY
+            element: <ReceiptDetailPage />
+          },
           { path: 'phieu-xuat/them', element: <CreateIssuePage /> },
-
+          {
+            path: 'phieu-xuat/:id', // <-- THÊM ROUTE NÀY
+            element: <IssueDetailPage />
+          },
           // Nhân viên
           { path: 'nhan-vien', element: <EmployeeManagementPage /> },
           { path: 'nhan-vien/them', element: <AddEmployeePage /> },

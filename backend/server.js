@@ -61,7 +61,20 @@ const checkAuth = (req, res, next) => {
         next();
     });
 };
-
+// --- MIDDLEWARE XÁC THỰC "MỀM" (TÙY CHỌN) ---
+const softCheckAuth = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+        return next(); // Không có token, vẫn cho qua
+    }
+    jwt.verify(token, SECRET_KEY, (err, user) => {
+        if (!err) {
+            req.user = user; // Gắn thông tin user nếu token hợp lệ
+        }
+        next(); // Luôn cho qua, kể cả khi token lỗi
+    });
+};
 const checkRole = (allowedRoles) => (req, res, next) => {
     if (req.user && allowedRoles.includes(req.user.vaiTro)) {
         next();
@@ -89,20 +102,34 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
+// API Đăng nhập (Đã thêm kiểm tra trạng thái tài khoản)
 app.post('/api/login', async (req, res) => {
     const { email, matKhau } = req.body;
     if (!email || !matKhau) return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin.' });
+
     try {
         const [rows] = await pool.query(`SELECT * FROM users WHERE email = ?`, [email]);
-        if (rows.length === 0) return res.status(401).json({ error: 'Email hoặc mật khẩu không chính xác.' });
+        if (rows.length === 0) {
+            return res.status(401).json({ error: 'Email hoặc mật khẩu không chính xác.' });
+        }
 
         const user = rows[0];
-        const isMatch = await bcrypt.compare(matKhau, user.matKhau);
-        if (!isMatch) return res.status(401).json({ error: 'Email hoặc mật khẩu không chính xác.' });
 
-        const payload = { id: user.id, hoTen: user.hoTen, vaiTro: user.vaiTro };
+        // --- BƯỚC KIỂM TRA BẢO MẬT ĐƯỢC THÊM VÀO ĐÂY ---
+        if (user.trang_thai === 'tam_khoa') {
+            return res.status(403).json({ error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.' });
+        }
+        // --- KẾT THÚC BƯỚC KIỂM TRA ---
+
+        const isMatch = await bcrypt.compare(matKhau, user.matKhau);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Email hoặc mật khẩu không chính xác.' });
+        }
+
+        const payload = { id: user.id, hoTen: user.hoTen, email: user.email, vaiTro: user.vaiTro };
         const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '1h' });
         res.status(200).json({ message: 'Đăng nhập thành công!', token, user: payload });
+        
     } catch (error) {
         res.status(500).json({ error: 'Lỗi server.' });
     }
@@ -110,14 +137,14 @@ app.post('/api/login', async (req, res) => {
 
 // --- PRODUCT & BATCH ROUTES ---
 // --- Product Routes (Quản lý Kho) ---
-// API lấy danh sách sản phẩm
+// API lấy danh sách sản phẩm (ĐÃ NÂNG CẤP - Hỗ trợ lọc theo Nhà cung cấp)
 app.get('/api/products', checkAuth, async (req, res) => {
     try {
-        const { search, status, category, page = 1, limit = 10 } = req.query;
+        const { search, status, category, nha_san_xuat, page = 1, limit = 1000 } = req.query; // Tăng limit để lấy hết SP
+        const offset = (page - 1) * limit;
 
-        let baseSql = "FROM products";
+        let whereClauses = [];
         const params = [];
-        const whereClauses = [];
 
         if (search) {
             whereClauses.push(`(ten_thuoc LIKE ? OR ma_thuoc LIKE ?)`);
@@ -131,21 +158,23 @@ app.get('/api/products', checkAuth, async (req, res) => {
             whereClauses.push(`danh_muc = ?`);
             params.push(category);
         }
-
-        if (whereClauses.length > 0) {
-            baseSql += " WHERE " + whereClauses.join(" AND ");
+        // --- THÊM LOGIC LỌC MỚI ---
+        if (nha_san_xuat) {
+            whereClauses.push(`nha_san_xuat = ?`);
+            params.push(nha_san_xuat);
         }
+        // --- KẾT THÚC LOGIC MỚI ---
+
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
         // Đếm tổng số kết quả
-        const countSql = `SELECT COUNT(*) as totalItems ${baseSql}`;
+        const countSql = `SELECT COUNT(*) as totalItems FROM products ${whereSql}`;
         const [totalResult] = await pool.query(countSql, params);
         const totalItems = totalResult[0].totalItems;
         const totalPages = Math.ceil(totalItems / limit);
 
-        // Lấy dữ liệu cho trang hiện tại
-        const offset = (page - 1) * limit;
-        const dataSql = `SELECT * ${baseSql} ORDER BY id DESC LIMIT ? OFFSET ?`;
-
+        // Lấy dữ liệu
+        const dataSql = `SELECT * FROM products ${whereSql} ORDER BY ten_thuoc ASC LIMIT ? OFFSET ?`;
         const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
 
         res.status(200).json({
@@ -157,39 +186,87 @@ app.get('/api/products', checkAuth, async (req, res) => {
     }
 });
 // === XEM CHI TIẾT SẢN PHẨM===
-app.get('/api/products/:id', async (req, res) => {
+// API LẤY CHI TIẾT SẢN PHẨM CÔNG KHAI (Đã cập nhật)
+app.get('/api/public/products/:id', async (req, res) => {
     try {
-        const [pRows] = await pool.query("SELECT * FROM products WHERE id = ?", [req.params.id]);
-        if (pRows.length === 0) return res.status(404).json({ error: 'Không tìm thấy sản phẩm.' });
-        const productData = pRows[0];
-        const [bRows] = await pool.query("SELECT * FROM lo_thuoc WHERE id_san_pham = ?", [req.params.id]);
-        productData.batches = bRows;
+        // Lấy tất cả các cột
+        const sql = "SELECT * FROM products WHERE id = ?";
+        const [rows] = await pool.query(sql, [req.params.id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy sản phẩm.' });
+        }
+
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+// API lấy chi tiết một sản phẩm (bao gồm các lô thuốc) - DÀNH CHO KHU VỰC QUẢN TRỊ
+app.get('/api/products/:id', checkAuth, async (req, res) => {
+    try {
+        const productId = req.params.id;
+
+        // Lấy thông tin chính của sản phẩm
+        const productSql = "SELECT * FROM products WHERE id = ?";
+        const [productRows] = await pool.query(productSql, [productId]);
+
+        if (productRows.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy sản phẩm.' });
+        }
+        const productData = productRows[0];
+
+        // Lấy tất cả các lô hàng liên quan đến sản phẩm đó
+        const batchesSql = "SELECT * FROM lo_thuoc WHERE id_san_pham = ? ORDER BY han_su_dung ASC";
+        const [batchRows] = await pool.query(batchesSql, [productId]);
+
+        // Gắn danh sách lô hàng vào đối tượng sản phẩm
+        productData.batches = batchRows;
+
         res.status(200).json(productData);
     } catch (error) {
+        console.error("Lỗi API getProductById:", error);
         res.status(500).json({ error: error.message });
     }
 });
 // API Thêm sản phẩm mới (BAO GỒM LÔ HÀNG ĐẦU TIÊN)
 app.post('/api/products', upload.single('hinh_anh'), async (req, res) => {
-    const { ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, ma_lo_thuoc, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho } = req.body;
-    const finalImagePath = req.file ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` : 'https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=No+Image';
-    // Kiểm tra các trường bắt buộc
+    const {
+        ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta,
+        ma_lo_thuoc, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho
+    } = req.body;
+
+    const finalImagePath = req.file
+        ? `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
+        : 'https://via.placeholder.com/400x400.png/EBF4FF/76A9FA?text=No+Image';
+
     if (!ten_thuoc || !ma_thuoc || !gia_ban || !ma_lo_thuoc || !so_luong_nhap) {
         return res.status(400).json({ error: 'Các trường thông tin sản phẩm và lô hàng đầu tiên là bắt buộc.' });
     }
+
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
+        // --- LOGIC MỚI: Tự động quyết định trạng thái ban đầu ---
+        const initialQuantity = parseInt(so_luong_nhap, 10);
+        let initialStatus = 'Hết hàng';
+        if (initialQuantity > 20) {
+            initialStatus = 'Còn hàng';
+        } else if (initialQuantity > 0) {
+            initialStatus = 'Sắp hết hàng';
+        }
+        // --- KẾT THÚC LOGIC MỚI ---
+
         // 1. Thêm sản phẩm vào bảng `products`
         const productSql = `INSERT INTO products (ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, hinh_anh, so_luong_ton, trang_thai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        // Tổng tồn kho ban đầu chính là số lượng của lô hàng đầu tiên
-        const productParams = [ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, finalImagePath, so_luong_nhap, 'Còn hàng'];
+        const productParams = [ten_thuoc, ma_thuoc, danh_muc, nha_san_xuat, gia_ban, don_vi_tinh, mo_ta, finalImagePath, initialQuantity, initialStatus];
         const [productResult] = await connection.query(productSql, productParams);
         const newProductId = productResult.insertId;
+
         // 2. Thêm lô hàng đầu tiên vào bảng `lo_thuoc`
         const batchSql = `INSERT INTO lo_thuoc (id_san_pham, ma_lo_thuoc, so_luong_nhap, so_luong_con, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        const batchParams = [newProductId, ma_lo_thuoc, so_luong_nhap, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho];
+        const batchParams = [newProductId, ma_lo_thuoc, initialQuantity, initialQuantity, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho];
         await connection.query(batchSql, batchParams);
 
         await connection.commit();
@@ -197,7 +274,6 @@ app.post('/api/products', upload.single('hinh_anh'), async (req, res) => {
 
     } catch (error) {
         await connection.rollback();
-        // Bắt lỗi trùng mã thuốc
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ error: 'Mã thuốc hoặc mã lô đã tồn tại.' });
         }
@@ -247,49 +323,112 @@ app.put('/api/products/:id', upload.single('hinh_anh'), async (req, res) => {
     }
 });
 // API Xóa một sản phẩm
-app.delete('/api/products/:id', async (req, res) => {
-    const productId = req.params.id;
+// app.delete('/api/products/:id', async (req, res) => {
+//     const productId = req.params.id;
+//     try {
+//         const [rows] = await pool.query('SELECT hinh_anh FROM products WHERE id = ?', [productId]);
+//         if (rows.length === 0) {
+//             return res.status(404).json({ error: 'Không tìm thấy sản phẩm để xóa.' });
+//         }
+//         const imageUrl = rows[0].hinh_anh;
+
+//         await pool.query("DELETE FROM products WHERE id = ?", [productId]);
+
+//         if (imageUrl && imageUrl.includes('/uploads/')) {
+//             const filename = path.basename(imageUrl);
+//             const localPath = path.join(__dirname, 'uploads', filename);
+//             if (fs.existsSync(localPath)) {
+//                 fs.unlink(localPath, (err) => { if (err) console.error("Lỗi xóa file ảnh:", err); });
+//             }
+//         }
+//         res.status(200).json({ message: 'Xóa sản phẩm thành công!' });
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//     }
+// });
+// API "Lưu trữ" hoặc "Ngừng kinh doanh" một sản phẩm (thay cho xóa)
+app.put('/api/products/:id/archive', checkAuth, async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT hinh_anh FROM products WHERE id = ?', [productId]);
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'Không tìm thấy sản phẩm để xóa.' });
-        }
-        const imageUrl = rows[0].hinh_anh;
+        const productId = req.params.id;
+        
+        // Thay vì DELETE, chúng ta UPDATE trạng thái
+        const sql = "UPDATE products SET trang_thai = 'Ngừng kinh doanh', so_luong_ton = 0 WHERE id = ?";
+        const [result] = await pool.query(sql, [productId]);
 
-        await pool.query("DELETE FROM products WHERE id = ?", [productId]);
-
-        if (imageUrl && imageUrl.includes('/uploads/')) {
-            const filename = path.basename(imageUrl);
-            const localPath = path.join(__dirname, 'uploads', filename);
-            if (fs.existsSync(localPath)) {
-                fs.unlink(localPath, (err) => { if (err) console.error("Lỗi xóa file ảnh:", err); });
-            }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy sản phẩm.' });
         }
-        res.status(200).json({ message: 'Xóa sản phẩm thành công!' });
+        
+        // Cũng có thể xóa các lô hàng liên quan nếu cần
+        await pool.query("DELETE FROM lo_thuoc WHERE id_san_pham = ?", [productId]);
+
+        res.status(200).json({ message: 'Đã chuyển sản phẩm sang trạng thái Ngừng kinh doanh!' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
+// API "Kinh doanh trở lại" một sản phẩm
+app.put('/api/products/:id/restore', checkAuth, async (req, res) => {
+    try {
+        const productId = req.params.id;
+        
+        // Đổi trạng thái về "Hết hàng", nhân viên sẽ cần nhập lô mới để bán
+        const sql = "UPDATE products SET trang_thai = 'Hết hàng' WHERE id = ?";
+        const [result] = await pool.query(sql, [productId]);
 
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy sản phẩm.' });
+        }
+        
+        res.status(200).json({ message: 'Đã đưa sản phẩm kinh doanh trở lại!' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 //  API Thêm một lô hàng mới
 app.post('/api/batches', async (req, res) => {
-    const { id_san_pham, ma_lo_thuoc, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho } = req.body;
-    if (!id_san_pham || !ma_lo_thuoc || !so_luong_nhap) return res.status(400).json({ error: 'Thông tin bắt buộc bị thiếu.' });
+    const {
+        id_san_pham, ma_lo_thuoc, so_luong_nhap, gia_nhap,
+        ngay_san_xuat, han_su_dung, vi_tri_kho
+    } = req.body;
+
+    if (!id_san_pham || !ma_lo_thuoc || !so_luong_nhap) {
+        return res.status(400).json({ error: 'Thông tin bắt buộc bị thiếu.' });
+    }
 
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
+
+        // 1. Thêm lô hàng mới vào bảng `lo_thuoc`
         const batchSql = `INSERT INTO lo_thuoc (id_san_pham, ma_lo_thuoc, so_luong_nhap, so_luong_con, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-        const batchParams = [id_san_pham, ma_lo_thuoc, so_luong_nhap, so_luong_nhap, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho];
+        const newQuantity = parseInt(so_luong_nhap, 10);
+        const batchParams = [id_san_pham, ma_lo_thuoc, newQuantity, newQuantity, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho];
         await connection.query(batchSql, batchParams);
 
-        const updateProductSql = `UPDATE products SET so_luong_ton = so_luong_ton + ?, trang_thai = 'Còn hàng' WHERE id = ?`;
-        await connection.query(updateProductSql, [so_luong_nhap, id_san_pham]);
+        // 2. Cập nhật tồn kho và trạng thái của sản phẩm
+        const updateProductSql = `
+            UPDATE products
+            SET 
+                so_luong_ton = so_luong_ton + ?,
+                trang_thai = CASE
+                    WHEN (so_luong_ton + ?) > 20 THEN 'Còn hàng'
+                    WHEN (so_luong_ton + ?) > 0 THEN 'Sắp hết hàng'
+                    ELSE 'Hết hàng'
+                END
+            WHERE id = ?
+        `;
+        await connection.query(updateProductSql, [newQuantity, newQuantity, newQuantity, id_san_pham]);
 
         await connection.commit();
         res.status(201).json({ message: 'Nhập lô hàng mới thành công!' });
+
     } catch (error) {
         await connection.rollback();
+        // Bắt lỗi trùng mã lô cho cùng một sản phẩm
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ error: 'Mã lô hàng này đã tồn tại cho sản phẩm.' });
+        }
         res.status(500).json({ error: error.message });
     } finally {
         connection.release();
@@ -374,70 +513,56 @@ app.delete('/api/orders/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ error: error.message }); }
 });
 // API Tạo một đơn hàng mới (với mã hóa đơn chuyên nghiệp)
-app.post('/api/orders', async (req, res) => {
+// API Tạo một đơn hàng mới (Phiên bản ổn định hơn)
+app.post('/api/orders', softCheckAuth, async (req, res) => {
     const { customerInfo, items } = req.body;
+    const userId = req.user ? req.user.id : null;
 
-    if (!customerInfo || !items || items.length === 0) {
-        return res.status(400).json({ error: 'Thông tin khách hàng và sản phẩm không được để trống.' });
+    if (!customerInfo || !items || !items.length) {
+        return res.status(400).json({ error: 'Dữ liệu không hợp lệ.' });
     }
 
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
-        // --- Logic tạo mã hóa đơn mới ---
+        // Logic tạo mã đơn hàng
         const today = new Date();
-        const datePrefix = today.getFullYear().toString().slice(-2)
-            + ('0' + (today.getMonth() + 1)).slice(-2)
-            + ('0' + today.getDate()).slice(-2);
-        const searchPattern = `HD-${datePrefix}-%`;
-
-        // Tìm số thứ tự lớn nhất trong ngày
-        const [lastOrder] = await connection.query(
-            "SELECT ma_don_hang FROM don_hang WHERE ma_don_hang LIKE ? ORDER BY ma_don_hang DESC LIMIT 1",
-            [searchPattern]
-        );
-
+        const datePrefix = today.getFullYear().toString().slice(-2) + ('0' + (today.getMonth() + 1)).slice(-2) + ('0' + today.getDate()).slice(-2);
+        const [lastOrder] = await connection.query("SELECT ma_don_hang FROM don_hang WHERE ma_don_hang LIKE ? ORDER BY id DESC LIMIT 1", [`HD-${datePrefix}-%`]);
         let newSequence = 1;
         if (lastOrder.length > 0) {
-            const lastSeq = parseInt(lastOrder[0].ma_don_hang.split('-')[2], 10);
-            newSequence = lastSeq + 1;
+            newSequence = parseInt(lastOrder[0].ma_don_hang.split('-')[2]) + 1;
         }
-
         const orderCode = `HD-${datePrefix}-${newSequence.toString().padStart(4, '0')}`;
-        // --- Kết thúc logic tạo mã ---
 
-
-        // 1. Tính toán tổng tiền
         const totalAmount = items.reduce((sum, item) => sum + (item.so_luong * item.don_gia), 0);
 
-        // 2. Thêm vào bảng `don_hang`
-        const orderSql = `INSERT INTO don_hang (ma_don_hang, ten_khach_hang, dia_chi_giao, so_dien_thoai, trang_thai, tong_tien) VALUES (?, ?, ?, ?, ?, ?)`;
-        const orderParams = [orderCode, customerInfo.ten_khach_hang, customerInfo.dia_chi_giao, customerInfo.so_dien_thoai, 'Đang xử lý', totalAmount];
-        const [orderResult] = await connection.query(orderSql, orderParams);
+        // 1. Insert vào don_hang
+        const orderSql = `INSERT INTO don_hang (ma_don_hang, id_thanh_vien, ten_khach_hang, dia_chi_giao, so_dien_thoai, trang_thai, tong_tien) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        const [orderResult] = await connection.query(orderSql, [orderCode, userId, customerInfo.ten_khach_hang, customerInfo.dia_chi_giao, customerInfo.so_dien_thoai, 'Đang xử lý', totalAmount]);
         const newOrderId = orderResult.insertId;
 
-        // 3. Thêm từng sản phẩm vào `chi_tiet_don_hang`
-        const itemPromises = items.map(item => {
+        // 2. Lặp và xử lý từng item một cách tuần tự để đảm bảo ổn định
+        for (const item of items) {
+            // 2a. Insert vào chi_tiet_don_hang
             const itemSql = `INSERT INTO chi_tiet_don_hang (id_don_hang, id_san_pham, so_luong, don_gia, thanh_tien) VALUES (?, ?, ?, ?, ?)`;
-            return connection.query(itemSql, [newOrderId, item.id_san_pham, item.so_luong, item.don_gia, item.so_luong * item.don_gia]);
-        });
-        await Promise.all(itemPromises);
+            await connection.query(itemSql, [newOrderId, item.id_san_pham, item.so_luong, item.don_gia, item.so_luong * item.don_gia]);
 
-        // 4. Cập nhật (trừ) số lượng tồn kho trong bảng `products`
-        const stockPromises = items.map(item => {
+            // 2b. Cập nhật tồn kho sản phẩm
             const stockSql = `UPDATE products SET so_luong_ton = so_luong_ton - ? WHERE id = ?`;
-            return connection.query(stockSql, [item.so_luong, item.id_san_pham]);
-        });
-        await Promise.all(stockPromises);
+            await connection.query(stockSql, [item.so_luong, item.id_san_pham]);
+        }
 
-        // Nếu tất cả thành công
         await connection.commit();
+
+        // Gửi phản hồi thành công
         res.status(201).json({ message: `Tạo đơn hàng ${orderCode} thành công!`, orderId: newOrderId });
 
     } catch (error) {
         await connection.rollback();
-        res.status(500).json({ error: error.message });
+        console.error("LỖI KHI TẠO ĐƠN HÀNG:", error); // Log lỗi chi tiết ở backend
+        res.status(500).json({ error: 'Đã xảy ra lỗi ở server khi tạo đơn hàng.' });
     } finally {
         connection.release();
     }
@@ -607,19 +732,20 @@ app.get('/api/receipts/:id', async (req, res) => {
 
 // API Tạo một Phiếu Nhập Kho mới
 // API Tạo một Phiếu Nhập Kho mới (Hoàn chỉnh)
-app.post('/api/receipts', async (req, res) => {
+// API Tạo một Phiếu Nhập Kho mới (Đã sửa lỗi cập nhật trạng thái)
+app.post('/api/receipts', checkAuth, async (req, res) => {
     const { receiptInfo, items } = req.body;
-    const userId = 1; // Giả sử nhân viên đăng nhập có id = 1
+    const userId = req.user.id; // Lấy ID nhân viên từ token
 
-    if (!receiptInfo || !items || items.length === 0) {
-        return res.status(400).json({ error: 'Thông tin phiếu và sản phẩm không được để trống.' });
+    if (!receiptInfo || !items || !items.length) {
+        return res.status(400).json({ error: 'Thông tin không hợp lệ.' });
     }
 
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
 
-        // --- Logic tạo mã phiếu nhập ---
+        // --- Logic tạo mã phiếu nhập (không đổi) ---
         const today = new Date();
         const datePrefix = today.getFullYear().toString().slice(-2) + ('0' + (today.getMonth() + 1)).slice(-2) + ('0' + today.getDate()).slice(-2);
         const [lastReceipt] = await connection.query("SELECT ma_phieu_nhap FROM phieu_nhap WHERE ma_phieu_nhap LIKE ? ORDER BY id DESC LIMIT 1", [`PN-${datePrefix}-%`]);
@@ -628,7 +754,6 @@ app.post('/api/receipts', async (req, res) => {
             newSequence = parseInt(lastReceipt[0].ma_phieu_nhap.split('-')[2]) + 1;
         }
         const receiptCode = `PN-${datePrefix}-${newSequence.toString().padStart(4, '0')}`;
-
         const totalAmount = items.reduce((sum, item) => sum + (Number(item.so_luong_nhap || 0) * Number(item.don_gia_nhap || 0)), 0);
 
         // 1. Tạo phiếu nhập chính
@@ -639,7 +764,7 @@ app.post('/api/receipts', async (req, res) => {
         // 2. Lặp qua từng sản phẩm để xử lý
         for (const item of items) {
             // 2a. Thêm lô thuốc mới
-            const batchSql = `INSERT INTO lo_thuoc (id_san_pham, ma_lo_thuoc, so_luong_nhap, so_luong_con, gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+            const batchSql = `INSERT INTO lo_thuoc (id_san_pham, ma_lo_thuoc, so_luong_nhap, so_luong_con, don_gia_nhap, ngay_san_xuat, han_su_dung, vi_tri_kho) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
             const [batchResult] = await connection.query(batchSql, [item.id_san_pham, item.ma_lo_thuoc, item.so_luong_nhap, item.so_luong_nhap, item.don_gia_nhap, item.ngay_san_xuat, item.han_su_dung, item.vi_tri_kho]);
             const newBatchId = batchResult.insertId;
 
@@ -647,10 +772,22 @@ app.post('/api/receipts', async (req, res) => {
             const detailSql = `INSERT INTO chi_tiet_phieu_nhap (id_phieu_nhap, id_lo_thuoc, so_luong_nhap, don_gia_nhap, thanh_tien) VALUES (?, ?, ?, ?, ?)`;
             await connection.query(detailSql, [newReceiptId, newBatchId, item.so_luong_nhap, item.don_gia_nhap, item.thanh_tien]);
 
-            // 2c. Cập nhật tồn kho sản phẩm
-            await connection.query(`UPDATE products SET so_luong_ton = so_luong_ton + ? WHERE id = ?`, [item.so_luong_nhap, item.id_san_pham]);
+            // 2c. Cập nhật tồn kho VÀ TRẠNG THÁI sản phẩm
+            const newQuantity = parseInt(item.so_luong_nhap, 10);
+            const updateProductSql = `
+                UPDATE products
+                SET 
+                    so_luong_ton = so_luong_ton + ?,
+                    trang_thai = CASE
+                        WHEN (so_luong_ton + ?) > 20 THEN 'Còn hàng'
+                        WHEN (so_luong_ton + ?) > 0 THEN 'Sắp hết hàng'
+                        ELSE 'Hết hàng'
+                    END
+                WHERE id = ?
+            `;
+            await connection.query(updateProductSql, [newQuantity, newQuantity, newQuantity, item.id_san_pham]);
         }
-
+        
         await connection.commit();
         res.status(201).json({ message: `Tạo phiếu nhập ${receiptCode} thành công!`, receiptId: newReceiptId });
 
@@ -825,27 +962,43 @@ app.post('/api/debug/login-as-role', (req, res) => {
     });
 });
 // API lấy danh sách nhân viên (có tìm kiếm và lọc trạng thái)
+// API lấy danh sách nhân viên (có tìm kiếm, lọc và phân trang)
 app.get('/api/admin/employees', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
     try {
-        const { search, status } = req.query; // Thêm status
+        const { search, status, page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
 
-        let sql = "SELECT id, hoTen, email, vaiTro, ngayTao, trang_thai FROM users WHERE vaiTro != 'thanh_vien'";
+        let whereClause = "WHERE vaiTro != 'thanh_vien'";
         const params = [];
 
         if (search) {
-            sql += " AND (hoTen LIKE ? OR email LIKE ?)";
+            whereClause += " AND (hoTen LIKE ? OR email LIKE ?)";
             params.push(`%${search}%`, `%${search}%`);
         }
-
         if (status) {
-            sql += " AND trang_thai = ?";
+            whereClause += " AND trang_thai = ?";
             params.push(status);
         }
 
-        sql += " ORDER BY id DESC";
+        // 1. Đếm tổng số kết quả
+        const countSql = `SELECT COUNT(*) as totalItems FROM users ${whereClause}`;
+        const [totalResult] = await pool.query(countSql, params);
+        const totalItems = totalResult[0].totalItems;
+        const totalPages = Math.ceil(totalItems / limit);
 
-        const [rows] = await pool.query(sql, params);
-        res.status(200).json(rows);
+        // 2. Lấy dữ liệu cho trang hiện tại
+        const dataSql = `SELECT id, hoTen, email, vaiTro, ngayTao, trang_thai FROM users ${whereClause} ORDER BY id DESC LIMIT ? OFFSET ?`;
+        const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
+
+        // 3. Trả về đúng định dạng { data, pagination }
+        res.status(200).json({
+            data: rows,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: totalPages,
+                totalItems: totalItems
+            }
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -939,7 +1092,7 @@ app.put('/api/admin/employees/:id/status', checkAuth, checkRole(['quan_tri_vien'
 });
 
 // API lấy danh sách Nhà cung cấp
-app.get('/api/admin/suppliers', checkAuth, checkRole(['quan_tri_vien']), async (req, res) => {
+app.get('/api/admin/suppliers', checkAuth, checkRole(['quan_tri_vien', 'nhan_vien']), async (req, res) => {
     try {
         const { search, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
@@ -960,7 +1113,7 @@ app.get('/api/admin/suppliers', checkAuth, checkRole(['quan_tri_vien']), async (
         // Lấy dữ liệu cho trang hiện tại
         const dataSql = `SELECT * FROM nha_cung_cap ${whereClause} ORDER BY id DESC LIMIT ? OFFSET ?`;
         const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
-        
+
         res.status(200).json({
             data: rows,
             pagination: { currentPage: parseInt(page), totalPages, totalItems }
@@ -1162,6 +1315,174 @@ app.put('/api/my/profile', checkAuth, async (req, res) => {
         await pool.query(sql, [hoTen, soDienThoai, diaChi, userId]);
 
         res.status(200).json({ message: 'Cập nhật thông tin thành công!' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API LẤY SẢN PHẨM NỔI BẬT CHO TRANG CHỦ (KHÔNG PHÂN TRANG)
+app.get('/api/public/homepage-products', async (req, res) => {
+    try {
+        const { limit = 8, category } = req.query;
+        let sql = "SELECT id, ten_thuoc, gia_ban, hinh_anh FROM products WHERE so_luong_ton > 0 AND trang_thai = 'Còn hàng'";
+        const params = [];
+
+        if (category) {
+            sql += " AND danh_muc = ?";
+            params.push(category);
+        }
+
+        sql += " ORDER BY id DESC LIMIT ?";
+        params.push(parseInt(limit));
+
+        const [rows] = await pool.query(sql, params);
+        res.status(200).json(rows); // Trả về mảng trực tiếp
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+// API LẤY SẢN PHẨM CÔNG KHAI (có tìm kiếm, lọc và phân trang)
+app.get('/api/public/products', async (req, res) => {
+    try {
+        const { search, category, page = 1, limit = 12 } = req.query;
+
+        let whereClauses = ["so_luong_ton > 0", "trang_thai = 'Còn hàng'"];
+        const params = [];
+
+        if (search) {
+            whereClauses.push(`ten_thuoc LIKE ?`);
+            params.push(`%${search}%`);
+        }
+        if (category) {
+            whereClauses.push(`danh_muc = ?`);
+            params.push(category);
+        }
+
+        const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
+
+        // Đếm tổng số kết quả
+        const countSql = `SELECT COUNT(*) as totalItems FROM products ${whereSql}`;
+        const [totalResult] = await pool.query(countSql, params);
+        const totalItems = totalResult[0].totalItems;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // Lấy dữ liệu cho trang hiện tại
+        const offset = (page - 1) * limit;
+        const dataSql = `SELECT id, ten_thuoc, gia_ban, hinh_anh, danh_muc FROM products ${whereSql} ORDER BY id DESC LIMIT ? OFFSET ?`;
+
+        const [rows] = await pool.query(dataSql, [...params, parseInt(limit), parseInt(offset)]);
+
+        res.status(200).json({
+            data: rows,
+            pagination: { currentPage: parseInt(page), totalPages, totalItems }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API lấy danh sách các danh mục sản phẩm (chỉ từ các sản phẩm còn hàng)
+app.get('/api/public/categories', async (req, res) => {
+    try {
+        const [rows] = await pool.query("SELECT DISTINCT danh_muc FROM products WHERE danh_muc IS NOT NULL AND danh_muc != '' AND trang_thai = 'Còn hàng'");
+        const categories = rows.map(row => row.danh_muc);
+        res.status(200).json(categories);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+// API ĐẶC BIỆT DÙNG MỘT LẦN ĐỂ TẠO USER MẪU
+// app.get('/api/setup/seed-users', async (req, res) => {
+//     const users = [
+//         { hoTen: 'Admin Chính', email: 'admin@gmail.com', matKhau: 'password123', vaiTro: 'quan_tri_vien' },
+//         { hoTen: 'Nhân Viên An', email: 'nhanvien01@gmail.com', matKhau: 'password123', vaiTro: 'nhan_vien' },
+//         { hoTen: 'Nhân Viên Trường', email: 'nhanvien02@gmail.com', matKhau: 'password123', vaiTro: 'nhan_vien' },
+//         { hoTen: 'Thành Viên Nhật', email: 'thanhvien01@gmail.com', matKhau: 'password123', vaiTro: 'thanh_vien' }
+//     ];
+
+//     try {
+//         // Xóa các user cũ để tránh trùng lặp
+//         await pool.query("DELETE FROM users WHERE email IN (?)", [users.map(u => u.email)]);
+
+//         for (const user of users) {
+//             const hashedPassword = await bcrypt.hash(user.matKhau, 10);
+//             const sql = `INSERT INTO users (hoTen, email, matKhau, vaiTro, trang_thai) VALUES (?, ?, ?, ?, 'hoat_dong')`;
+//             await pool.query(sql, [user.hoTen, user.email, hashedPassword, user.vaiTro]);
+//         }
+//         res.status(200).send('<h1>Đã tạo thành công 3 tài khoản mẫu (admin, nhanvien, thanhvien) với mật khẩu là "password123".</h1><p>Bây giờ bạn có thể quay lại trang đăng nhập.</p>');
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//     }
+// });
+// API lấy chi tiết một đơn hàng CỦA CHÍNH NGƯỜI DÙNG
+app.get('/api/my/orders/:id', checkAuth, async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const userId = req.user.id; // Lấy ID người dùng từ token
+
+        // Lấy thông tin chung của đơn hàng, ĐẢM BẢO đơn hàng này thuộc về người dùng đang đăng nhập
+        const orderSql = "SELECT * FROM don_hang WHERE id = ? AND id_thanh_vien = ?";
+        const [orderRows] = await pool.query(orderSql, [orderId, userId]);
+
+        if (orderRows.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy đơn hàng hoặc bạn không có quyền xem.' });
+        }
+        const orderData = orderRows[0];
+
+        // Lấy danh sách sản phẩm trong đơn hàng đó
+        const itemsSql = `
+            SELECT ct.*, p.ten_thuoc, p.hinh_anh 
+            FROM chi_tiet_don_hang ct
+            JOIN products p ON ct.id_san_pham = p.id
+            WHERE ct.id_don_hang = ?
+        `;
+        const [itemRows] = await pool.query(itemsSql, [orderId]);
+        orderData.items = itemRows;
+
+        res.status(200).json(orderData);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+// API CÔNG KHAI để gửi yêu cầu tư vấn
+// Dùng softCheckAuth để có thể lấy thông tin user nếu họ đã đăng nhập
+app.post('/api/public/consultations', softCheckAuth, async (req, res) => {
+    const { ten_nguoi_gui, email_nguoi_gui, tieu_de, noi_dung } = req.body;
+
+    // Lấy thông tin từ token nếu có, ngược lại lấy từ form
+    const finalName = req.user ? req.user.hoTen : ten_nguoi_gui;
+    const finalEmail = req.user ? req.user.email : email_nguoi_gui;
+
+    if (!finalName || !noi_dung) {
+        return res.status(400).json({ error: 'Tên và nội dung không được để trống.' });
+    }
+
+    try {
+        const sql = `INSERT INTO yeu_cau_tu_van (ten_nguoi_gui, email_nguoi_gui, tieu_de, noi_dung, trang_thai) VALUES (?, ?, ?, ?, 'Mới')`;
+        await pool.query(sql, [finalName, finalEmail, tieu_de, noi_dung]);
+
+        res.status(201).json({ message: 'Gửi yêu cầu tư vấn thành công! Chúng tôi sẽ sớm phản hồi cho bạn.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+// API lấy lịch sử tư vấn của chính người dùng đang đăng nhập
+app.get('/api/my/consultations', checkAuth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Lấy email của người dùng từ ID của họ
+        const [userRows] = await pool.query("SELECT email FROM users WHERE id = ?", [userId]);
+        if (userRows.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy người dùng.' });
+        }
+        const userEmail = userRows[0].email;
+
+        // Lấy tất cả các yêu cầu tư vấn có email trùng khớp
+        const sql = "SELECT * FROM yeu_cau_tu_van WHERE email_nguoi_gui = ? ORDER BY ngay_gui DESC";
+        const [rows] = await pool.query(sql, [userEmail]);
+
+        res.status(200).json(rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

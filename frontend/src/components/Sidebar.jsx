@@ -1,15 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // 1. Import useAuth
+import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faHome,
-  faSearch,
+  faBoxOpen, // Thay icon faSearch bằng faBoxOpen
   faUserPlus,
   faSignInAlt,
   faUserCircle,
   faSignOutAlt,
-  faBoxOpen
+  faComments
 } from '@fortawesome/free-solid-svg-icons';
 
 const NavItem = ({ to, icon, children }) => (
@@ -27,7 +27,6 @@ const NavItem = ({ to, icon, children }) => (
 );
 
 function Sidebar() {
-  // 2. Lấy thông tin user và hàm logout từ context
   const { user, logout } = useAuth();
 
   return (
@@ -39,11 +38,8 @@ function Sidebar() {
       <nav className="p-4 flex-grow">
         <ul className="space-y-2 list-none p-0">
           <NavItem to="/" icon={faHome}>Trang chủ</NavItem>
-          <NavItem to="/product" icon={faBoxOpen}>Sản Phẩm</NavItem>
-          <NavItem to="/tim-kiem" icon={faSearch}>Tìm kiếm thuốc</NavItem>
-
-          {/* 3. Dùng điều kiện để render menu */}
-          {/* Nếu KHÔNG có user -> Hiển thị Đăng ký/Đăng nhập */}
+          <NavItem to="/product" icon={faBoxOpen}>Sản phẩm</NavItem>
+          <NavItem to="/tu-van" icon={faComments}>Tư vấn</NavItem>
           {!user && (
             <>
               <NavItem to="/dang-ky" icon={faUserPlus}>Đăng ký</NavItem>
@@ -51,25 +47,11 @@ function Sidebar() {
             </>
           )}
 
-          {/* Nếu CÓ user -> Hiển thị Tài khoản của tôi */}
-          {user && (
-            <NavItem to="/tai-khoan" icon={faUserCircle}>Tài khoản của tôi</NavItem>
+          {user && user.vaiTro === 'thanh_vien' && (
+            <NavItem to="/tai-khoan/don-hang" icon={faUserCircle}>Tài khoản của tôi</NavItem>
           )}
         </ul>
       </nav>
-
-      {/* 4. Hiển thị nút đăng xuất nếu đã đăng nhập */}
-      {user && (
-        <div className="p-4 border-t">
-          <button
-            onClick={logout}
-            className="w-full flex items-center space-x-3 p-3 rounded-lg text-gray-700 font-medium hover:bg-gray-100"
-          >
-            <FontAwesomeIcon icon={faSignOutAlt} className="fa-fw w-5 text-center" />
-            <span>Đăng xuất</span>
-          </button>
-        </div>
-      )}
     </aside>
   );
 }

@@ -27,7 +27,11 @@ function ProfilePage() {
             body: JSON.stringify(profile)
         });
         const result = await response.json();
-        alert(result.message || result.error);
+        if (response.ok) {
+            toast.success(result.message);
+        } else {
+            toast.error(result.error);
+        }
     };
 
     if (isLoading) return <div>Đang tải...</div>;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 
 function AddEmployeePage() {
@@ -14,7 +15,7 @@ function AddEmployeePage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (formData.matKhau !== formData.xacNhanMatKhau) {
-            alert("Mật khẩu xác nhận không khớp!");
+            toast.error("Mật khẩu xác nhận không khớp!");
             return;
         }
 
@@ -30,13 +31,13 @@ function AddEmployeePage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate('/admin/nhan-vien');
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối đến server.');
+            toast.error('Lỗi kết nối đến server.');
         }
     };
 

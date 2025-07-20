@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import toast from 'react-hot-toast';
 
 function ConsultationPage() {
     const [requests, setRequests] = useState([]);
@@ -45,7 +46,7 @@ function ConsultationPage() {
     const handleReplySubmit = async (e) => {
         e.preventDefault();
         if (!selectedRequest || !replyMessage) {
-            alert('Vui lòng chọn yêu cầu và nhập nội dung phản hồi.');
+            toast.error('Vui lòng chọn yêu cầu và nhập nội dung phản hồi.');
             return;
         }
         try {
@@ -60,13 +61,13 @@ function ConsultationPage() {
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 fetchConsultations(); // Tải lại danh sách để cập nhật trạng thái
             } else {
-                alert('Lỗi: ' + result.error);
+                toast.error('Lỗi: ' + result.error);
             }
         } catch (error) {
-            alert('Lỗi kết nối.');
+            toast.error('Lỗi kết nối.');
         }
     };
 

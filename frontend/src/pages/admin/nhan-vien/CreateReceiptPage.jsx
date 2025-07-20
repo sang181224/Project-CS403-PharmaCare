@@ -2,83 +2,50 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import ProductSearchInput from '../../../components/admin/ProductSearchInput';
+import toast from 'react-hot-toast'; // <-- DÒNG QUAN TRỌNG BỊ THIẾU
 
 function CreateReceiptPage() {
     const navigate = useNavigate();
-
-    // State cho dữ liệu tải từ server
     const [suppliers, setSuppliers] = useState([]);
-    const [products, setProducts] = useState([]);
-
-    // State cho thông tin của phiếu nhập
-    const [receiptInfo, setReceiptInfo] = useState({
-        id_nha_cung_cap: '',
-        ghi_chu: '',
-        ngay_nhap: new Date().toISOString().slice(0, 10)
-    });
+    const [receiptInfo, setReceiptInfo] = useState({ id_nha_cung_cap: '', ngay_nhap: new Date().toISOString().slice(0, 10) });
     const [items, setItems] = useState([]);
 
-    // State cho việc chọn sản phẩm để thêm vào
-    const [selectedProductId, setSelectedProductId] = useState('');
-
-    // Tải danh sách nhà cung cấp và sản phẩm khi component được render
     useEffect(() => {
-        const token = localStorage.getItem('authToken');
-        const headers = { 'Authorization': `Bearer ${token}` };
-
-        const fetchInitialData = async () => {
+        const fetchSuppliers = async () => {
             try {
-                const [suppliersRes, productsRes] = await Promise.all([
-                    fetch('http://localhost:3000/api/suppliers', { headers }),
-                    fetch('http://localhost:3000/api/products', { headers })
-                ]);
-                const suppliersData = await suppliersRes.json();
-                const productsData = await productsRes.json();
-
-                if (suppliersRes.ok && suppliersData.length > 0) {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch('http://localhost:3000/api/admin/suppliers', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await response.json();
+                const suppliersData = result.data || result;
+                if (response.ok && suppliersData.length > 0) {
                     setSuppliers(suppliersData);
                     setReceiptInfo(prev => ({ ...prev, id_nha_cung_cap: suppliersData[0].id }));
                 }
-                if (productsRes.ok && productsData.length > 0) {
-                    setProducts(productsData);
-                    setSelectedProductId(productsData[0].id);
-                }
-            } catch (error) {
-                console.error("Lỗi tải dữ liệu ban đầu:", error);
+            } catch (err) {
+                console.error("Lỗi tải nhà cung cấp:", err);
             }
         };
-        fetchInitialData();
+        fetchSuppliers();
     }, []);
 
-    const handleAddItem = () => {
-        if (!selectedProductId) {
-            alert("Vui lòng chọn một sản phẩm.");
-            return;
-        }
-        const productToAdd = products.find(p => p.id === parseInt(selectedProductId));
-        if (!productToAdd) return;
-
+    const handleProductSelect = (product) => {
         const newItem = {
-            // Dùng một ID tạm thời duy nhất ở frontend để React có thể render list
             tempId: Date.now(),
-            id_san_pham: productToAdd.id,
-            ten_thuoc: productToAdd.ten_thuoc,
-            ma_lo_thuoc: '',
-            so_luong_nhap: 1,
-            don_gia_nhap: 0,
-            thanh_tien: 0,
-            ngay_san_xuat: '',
-            han_su_dung: '',
-            vi_tri_kho: ''
+            id_san_pham: product.id,
+            ten_thuoc: product.ten_thuoc,
+            ma_lo_thuoc: '', so_luong_nhap: 1, don_gia_nhap: 0, thanh_tien: 0,
+            ngay_san_xuat: '', han_su_dung: '', vi_tri_kho: ''
         };
-        setItems([...items, newItem]);
+        setItems(prevItems => [...prevItems, newItem]);
     };
 
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
         const item = newItems[index];
         item[field] = value;
-
         if (field === 'so_luong_nhap' || field === 'don_gia_nhap') {
             item.thanh_tien = (Number(item.so_luong_nhap) || 0) * (Number(item.don_gia_nhap) || 0);
         }
@@ -89,70 +56,58 @@ function CreateReceiptPage() {
         setItems(items.filter((_, i) => i !== index));
     };
 
-    const totalAmount = useMemo(() => {
-        return items.reduce((sum, item) => sum + item.thanh_tien, 0);
-    }, [items]);
+    const totalAmount = useMemo(() => items.reduce((sum, item) => sum + item.thanh_tien, 0), [items]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const token = localStorage.getItem('authToken');
             const response = await fetch('http://localhost:3000/api/receipts', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ receiptInfo: { ...receiptInfo, tong_tien: totalAmount }, items })
             });
             const result = await response.json();
             if (response.ok) {
-                alert(result.message);
+                toast.success(result.message);
                 navigate('/admin/phieu-nhap-xuat');
-            } else { alert('Lỗi: ' + result.error); }
-        } catch (error) { alert('Lỗi kết nối.'); }
+            } else {
+                toast.error('Lỗi: ' + result.error);
+            }
+        } catch (error) {
+            toast.error('Lỗi kết nối.');
+        }
     };
 
     return (
         <>
-            <div className="mb-8">
-                <nav className="text-sm mb-2" aria-label="Breadcrumb"><ol className="list-none p-0 inline-flex space-x-2"><li className="flex items-center"><Link to="/admin/phieu-nhap-xuat" className="text-gray-500 hover:text-blue-600">Phiếu nhập / xuất</Link></li><li className="flex items-center"><i className="fas fa-chevron-right text-xs text-gray-400 mx-2"></i><span className="text-gray-800 font-medium">Tạo Phiếu Nhập Kho</span></li></ol></nav>
-                <h1 className="text-3xl font-bold text-gray-800">Tạo Phiếu Nhập Kho</h1>
-            </div>
-
+            <h1 className="text-3xl font-bold text-gray-800 mb-8">Tạo Phiếu Nhập Kho</h1>
             <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <label className="block text-sm font-medium mb-1">Nhà cung cấp</label>
-                        <select name="id_nha_cung_cap" value={receiptInfo.id_nha_cung_cap} onChange={e => setReceiptInfo({ ...receiptInfo, id_nha_cung_cap: e.target.value })} className="w-full p-2 border rounded-lg bg-white">
+                        <select value={receiptInfo.id_nha_cung_cap} onChange={e => setReceiptInfo({ ...receiptInfo, id_nha_cung_cap: e.target.value })} className="w-full p-2 border rounded-lg bg-white">
                             {suppliers.map(s => <option key={s.id} value={s.id}>{s.ten_nha_cung_cap}</option>)}
                         </select>
                     </div>
-                    <div><label className="block text-sm font-medium mb-1">Ngày nhập</label><input type="date" name="ngay_nhap" value={receiptInfo.ngay_nhap} onChange={e => setReceiptInfo({ ...receiptInfo, ngay_nhap: e.target.value })} className="w-full p-2 border rounded-lg" /></div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Ngày nhập</label>
+                        <input type="date" value={receiptInfo.ngay_nhap} onChange={e => setReceiptInfo({ ...receiptInfo, ngay_nhap: e.target.value })} className="w-full p-2 border rounded-lg" />
+                    </div>
                 </div>
 
                 <div className="border-t pt-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold">Chi tiết hàng hóa</h3>
-                        <div className="flex items-end gap-4">
-                            <div className="flex-grow w-full md:w-64"><label className="text-sm">Chọn sản phẩm</label><select value={selectedProductId} onChange={e => setSelectedProductId(e.target.value)} className="w-full mt-1 p-2 border rounded-lg"><option value="">-- Chọn sản phẩm --</option>{products.map(p => <option key={p.id} value={p.id}>{p.ten_thuoc}</option>)}</select></div>
-                            <button type="button" onClick={handleAddItem} className="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg h-10 shrink-0"><FontAwesomeIcon icon={faPlus} /></button>
-                        </div>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-1">Tìm và thêm sản phẩm</label>
+                        <ProductSearchInput onProductSelect={handleProductSelect} />
                     </div>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="p-2 text-left w-1/4">Sản phẩm</th>
-                                    <th className="p-2 text-left">Mã Lô</th>
-                                    <th className="p-2 text-left">Số lượng</th>
-                                    <th className="p-2 text-left">Đơn giá nhập</th>
-                                    <th className="p-2 text-left">Hạn dùng</th>
-                                    <th className="p-2 text-left">Vị trí</th>
-                                    <th className="p-2 text-right">Thành tiền</th>
-                                    <th className="p-2"></th>
-                                </tr>
-                            </thead>
+                            <thead className="bg-gray-50"><tr><th className="p-2 text-left">Sản phẩm</th><th className="p-2">Mã Lô</th><th className="p-2">Số lượng</th><th className="p-2">Đơn giá</th><th className="p-2">Ngày SX</th><th className="p-2">Hạn dùng</th><th className="p-2">Vị trí</th><th className="p-2 text-right">Thành tiền</th><th></th></tr></thead>
                             <tbody>
                                 {items.length === 0 ? (
-                                    <tr><td colSpan="8" className="text-center p-8 text-gray-500">Chưa có sản phẩm nào trong phiếu nhập.</td></tr>
+                                    <tr><td colSpan="9" className="text-center p-8 text-gray-500">Chưa có sản phẩm nào.</td></tr>
                                 ) : (
                                     items.map((item, index) => (
                                         <tr key={item.tempId} className="border-b">
@@ -160,6 +115,7 @@ function CreateReceiptPage() {
                                             <td className="p-2"><input type="text" value={item.ma_lo_thuoc} onChange={e => handleItemChange(index, 'ma_lo_thuoc', e.target.value)} className="w-28 p-1 border rounded" required /></td>
                                             <td className="p-2"><input type="number" value={item.so_luong_nhap} onChange={e => handleItemChange(index, 'so_luong_nhap', e.target.value)} className="w-20 p-1 border rounded" required /></td>
                                             <td className="p-2"><input type="number" value={item.don_gia_nhap} onChange={e => handleItemChange(index, 'don_gia_nhap', e.target.value)} className="w-28 p-1 border rounded" required /></td>
+                                            <td className="p-2"><input type="date" value={item.ngay_san_xuat} onChange={e => handleItemChange(index, 'ngay_san_xuat', e.target.value)} className="w-full p-1 border rounded text-gray-500" /></td>
                                             <td className="p-2"><input type="date" value={item.han_su_dung} onChange={e => handleItemChange(index, 'han_su_dung', e.target.value)} className="w-full p-1 border rounded text-gray-500" /></td>
                                             <td className="p-2"><input type="text" value={item.vi_tri_kho} onChange={e => handleItemChange(index, 'vi_tri_kho', e.target.value)} className="w-24 p-1 border rounded" /></td>
                                             <td className="p-2 text-right font-medium">{item.thanh_tien.toLocaleString('vi-VN')}đ</td>

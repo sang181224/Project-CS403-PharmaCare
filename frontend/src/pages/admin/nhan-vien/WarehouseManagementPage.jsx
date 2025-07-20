@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faPencilAlt, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faPencilAlt, faArchive, faUndo, faPlus } from '@fortawesome/free-solid-svg-icons';
 import Pagination from '../../../components/Pagination';
+import ConfirmModal from '../../../components/ConfirmModal';
+import toast from 'react-hot-toast';
 
 // Custom hook để trì hoãn việc tìm kiếm
 function useDebounce(value, delay) {
@@ -23,14 +25,27 @@ function WarehouseManagementPage() {
     category: ''
   });
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0 });
+  const [categories, setCategories] = useState([]);
+
+  // State để quản lý hành động (lưu trữ hoặc phục hồi)
+  const [actionInfo, setActionInfo] = useState({ isOpen: false, product: null, type: '' });
+
   const searchInputRef = useRef(null);
   const debouncedSearchTerm = useDebounce(filters.search, 500);
 
-  // Tự động focus vào ô input khi trang tải
+  // Tải danh sách danh mục MỘT LẦN
   useEffect(() => {
-    if (searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/public/categories');
+        if (response.ok) {
+          setCategories(await response.json());
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải danh mục:", error);
+      }
+    };
+    fetchCategories();
   }, []);
 
   // Hàm gọi API để lấy danh sách sản phẩm
@@ -58,13 +73,12 @@ function WarehouseManagementPage() {
       }
     } catch (error) {
       console.error("Lỗi:", error);
-      alert("Không thể tải danh sách sản phẩm.");
+      toast.error("Không thể tải danh sách sản phẩm.");
     } finally {
       setIsLoading(false);
     }
   }, [debouncedSearchTerm, filters.status, filters.category]);
 
-  // Gọi API khi trang hoặc bộ lọc thay đổi
   useEffect(() => {
     fetchProducts(pagination.currentPage);
   }, [fetchProducts, pagination.currentPage]);
@@ -78,30 +92,42 @@ function WarehouseManagementPage() {
     setPagination(prev => ({ ...prev, currentPage: pageNumber }));
   };
 
-  const handleDelete = async (productId, productName) => {
-    if (window.confirm(`Bạn có chắc muốn xóa sản phẩm "${productName}" không?`)) {
-      try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`http://localhost:3000/api/products/${productId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const result = await response.json();
-        if (response.ok) {
-          alert(result.message);
-          fetchProducts(pagination.currentPage);
-        } else {
-          alert('Lỗi: ' + result.error);
-        }
-      } catch (error) {
-        alert('Lỗi kết nối.');
+  // Hàm xác nhận chung cho cả hai hành động
+  const handleActionConfirm = async () => {
+    if (!actionInfo.product) return;
+
+    const { product, type } = actionInfo;
+    const endpoint = type === 'archive' ? 'archive' : 'restore';
+    const method = 'PUT';
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:3000/api/products/${product.id}/${endpoint}`, {
+        method: method,
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json();
+      if (response.ok) {
+        toast.success(result.message);
+        fetchProducts(pagination.currentPage);
+      } else {
+        toast.error('Lỗi: ' + result.error);
       }
+    } catch (error) {
+      toast.error('Lỗi kết nối đến server.');
+    } finally {
+      setActionInfo({ isOpen: false, product: null, type: '' }); // Đóng modal và reset
     }
+  };
+
+  // Hàm mở modal, xác định loại hành động
+  const promptAction = (product, type) => {
+    setActionInfo({ isOpen: true, product, type });
   };
 
   const getStatusColor = (status) => {
     if (status === 'Sắp hết hàng') return 'bg-orange-100 text-orange-800';
-    if (status === 'Hết hàng') return 'bg-red-100 text-red-800';
+    if (status === 'Hết hàng' || status === 'Ngừng kinh doanh') return 'bg-red-100 text-red-800';
     return 'bg-green-100 text-green-800';
   };
 
@@ -122,12 +148,11 @@ function WarehouseManagementPage() {
             <option value="Còn hàng">Còn hàng</option>
             <option value="Sắp hết hàng">Sắp hết hàng</option>
             <option value="Hết hàng">Hết hàng</option>
+            <option value="Ngừng kinh doanh">Ngừng kinh doanh</option>
           </select>
           <select name="category" value={filters.category} onChange={handleFilterChange} className="w-full p-2 border rounded-lg">
             <option value="">Tất cả danh mục</option>
-            <option value="Thuốc giảm đau">Thuốc giảm đau</option>
-            <option value="Thuốc tiêu hóa">Thuốc tiêu hóa</option>
-            <option value="Vitamin">Vitamin</option>
+            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
       </div>
@@ -136,13 +161,7 @@ function WarehouseManagementPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50 text-sm uppercase text-gray-700">
-              <tr>
-                <th className="px-6 py-3">Sản phẩm</th>
-                <th className="px-6 py-3">Danh mục</th>
-                <th className="px-6 py-3">SL Tồn</th>
-                <th className="px-6 py-3">Trạng thái</th>
-                <th className="px-6 py-3 text-center">Hành động</th>
-              </tr>
+              <tr><th className="px-6 py-3">Sản phẩm</th><th className="px-6 py-3">Danh mục</th><th className="px-6 py-3">SL Tồn</th><th className="px-6 py-3">Trạng thái</th><th className="px-6 py-3 text-center">Hành động</th></tr>
             </thead>
             <tbody>
               {isLoading ? (
@@ -150,15 +169,7 @@ function WarehouseManagementPage() {
               ) : products.length > 0 ? (
                 products.map((product) => (
                   <tr key={product.id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <img src={product.hinh_anh} alt={product.ten_thuoc} className="w-12 h-12 rounded-md object-cover flex-shrink-0" />
-                        <div>
-                          <p className="font-medium text-gray-900">{product.ten_thuoc}</p>
-                          <p className="text-xs text-gray-500">{product.ma_thuoc}</p>
-                        </div>
-                      </div>
-                    </td>
+                    <td className="px-6 py-4"><div className="flex items-center space-x-3"><img src={product.hinh_anh} alt={product.ten_thuoc} className="w-12 h-12 rounded-md object-cover flex-shrink-0" /><div><p className="font-medium text-gray-900">{product.ten_thuoc}</p><p className="text-xs text-gray-500">{product.ma_thuoc}</p></div></div></td>
                     <td className="px-6 py-4">{product.danh_muc}</td>
                     <td className="px-6 py-4 font-semibold">{product.so_luong_ton}</td>
                     <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(product.trang_thai)}`}>{product.trang_thai}</span></td>
@@ -166,28 +177,33 @@ function WarehouseManagementPage() {
                       <div className="flex items-center justify-center space-x-4 text-gray-500">
                         <Link to={`/admin/kho/${product.id}`} className="hover:text-blue-600" title="Xem chi tiết"><FontAwesomeIcon icon={faEye} /></Link>
                         <Link to={`/admin/kho/sua/${product.id}`} className="hover:text-green-600" title="Sửa"><FontAwesomeIcon icon={faPencilAlt} /></Link>
-                        <button onClick={() => handleDelete(product.id, product.ten_thuoc)} className="hover:text-red-600" title="Xóa"><FontAwesomeIcon icon={faTrash} /></button>
+                        {product.trang_thai !== 'Ngừng kinh doanh' ? (
+                          <button onClick={() => promptAction(product, 'archive')} className="hover:text-red-600" title="Ngừng kinh doanh"><FontAwesomeIcon icon={faArchive} /></button>
+                        ) : (
+                          <button onClick={() => promptAction(product, 'restore')} className="hover:text-green-600" title="Kinh doanh trở lại"><FontAwesomeIcon icon={faUndo} /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan="5" className="text-center p-8 text-gray-500">Không tìm thấy sản phẩm nào khớp với bộ lọc.</td></tr>
+                <tr><td colSpan="5" className="text-center p-8 text-gray-500">Không tìm thấy sản phẩm nào.</td></tr>
               )}
             </tbody>
           </table>
         </div>
         <div className="p-4 flex justify-between items-center border-t">
-          <span className="text-sm text-gray-700">
-            Hiển thị <span className="font-semibold">{products.length}</span> trên <span className="font-semibold">{pagination.totalItems}</span> kết quả
-          </span>
-          <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
-          />
+          <span className="text-sm text-gray-700">Hiển thị <span className="font-semibold">{products.length}</span> trên <span className="font-semibold">{pagination.totalItems}</span> kết quả</span>
+          <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} onPageChange={handlePageChange} />
         </div>
       </div>
+      <ConfirmModal
+        isOpen={actionInfo.isOpen}
+        onClose={() => setActionInfo({ isOpen: false, product: null, type: '' })}
+        onConfirm={handleActionConfirm}
+        title={actionInfo.type === 'archive' ? "Xác nhận Ngừng kinh doanh" : "Xác nhận Kinh doanh trở lại"}
+        message={`Bạn có chắc muốn ${actionInfo.type === 'archive' ? 'ngừng kinh doanh' : 'kinh doanh trở lại'} sản phẩm "${actionInfo.product?.ten_thuoc}" không?`}
+      />
     </>
   );
 }
