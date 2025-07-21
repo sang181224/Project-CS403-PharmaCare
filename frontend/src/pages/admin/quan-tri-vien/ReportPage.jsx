@@ -13,7 +13,7 @@ function ReportPage() {
     useEffect(() => {
         const fetchRevenueData = async () => {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/revenue-by-month`, {
+            const response = await fetch(`/api/api/reports/revenue-by-month`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

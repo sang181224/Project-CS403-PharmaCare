@@ -9,7 +9,7 @@ function OrderHistoryPage() {
         const fetchMyOrders = async () => {
             const token = localStorage.getItem('authToken');
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/my/orders`, {
+                const res = await fetch(`/api/api/my/orders`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {

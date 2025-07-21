@@ -42,7 +42,7 @@ function EmployeeManagementPage() {
                 limit: 10
             }).toString();
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/employees?${queryParams}`, {
+            const response = await fetch(`/api/api/admin/employees?${queryParams}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const result = await response.json();
@@ -81,7 +81,7 @@ function EmployeeManagementPage() {
 
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/employees/${employeeToAction.id}/status`, {
+            const response = await fetch(`/api/api/admin/employees/${employeeToAction.id}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ trang_thai: newStatus })

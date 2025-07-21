@@ -8,7 +8,7 @@ function DebugLoginPage() {
     const loginAs = async (role) => {
         try {
             // Gọi đến API debug mới để lấy token thật
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/debug/login-as-role`, {
+            const response = await fetch(`/api/api/debug/login-as-role`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ role: role })

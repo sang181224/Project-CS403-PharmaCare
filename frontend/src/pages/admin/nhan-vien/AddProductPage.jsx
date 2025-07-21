@@ -52,7 +52,7 @@ function AddProductPage() {
         }
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`, {
+            const response = await fetch(`/api/api/products`, {
                 method: 'POST',
                 body: data,
                 // Không cần header 'Content-Type' khi dùng FormData

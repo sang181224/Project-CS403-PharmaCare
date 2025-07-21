@@ -25,7 +25,7 @@ function AddBatchModal({ isOpen, onClose, productId, onBatchAdded }) {
         e.preventDefault();
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/batches`, {
+            const response = await fetch(`/api/api/batches`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ ...batchData, id_san_pham: productId })
@@ -78,7 +78,7 @@ function ProductDetailAdminPage() {
         try {
             const token = localStorage.getItem('authToken');
             // SỬA LẠI ĐƯỜNG DẪN API Ở ĐÂY: Dùng API được bảo vệ '/api/products/:id'
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${id}`, {
+            const response = await fetch(`/api/api/products/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('Không thể tải dữ liệu sản phẩm.');

@@ -8,7 +8,7 @@ function ReceiptDetailPage() {
     useEffect(() => {
         const fetchReceipt = async () => {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/receipts/${id}`, {
+            const response = await fetch(`/api/api/receipts/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();

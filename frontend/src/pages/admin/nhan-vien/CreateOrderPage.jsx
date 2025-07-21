@@ -18,7 +18,7 @@ function CreateOrderPage() {
         const fetchProducts = async () => {
             try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`, {
+                const response = await fetch(`/api/api/products`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -89,7 +89,7 @@ function CreateOrderPage() {
         }
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
+            const response = await fetch(`/api/api/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ customerInfo, items })

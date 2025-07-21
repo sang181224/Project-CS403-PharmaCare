@@ -37,7 +37,7 @@ function WarehouseManagementPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/public/categories`);
+        const response = await fetch(`/api/api/public/categories`);
         if (response.ok) {
           setCategories(await response.json());
         }
@@ -61,7 +61,7 @@ function WarehouseManagementPage() {
         limit: 10
       }).toString();
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products?${queryParams}`, {
+      const response = await fetch(`/api/api/products?${queryParams}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
@@ -102,7 +102,7 @@ function WarehouseManagementPage() {
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${product.id}/${endpoint}`, {
+      const response = await fetch(`/api/api/products/${product.id}/${endpoint}`, {
         method: method,
         headers: { 'Authorization': `Bearer ${token}` }
       });

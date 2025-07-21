@@ -39,7 +39,7 @@ function GoodsReceiptIssuePage() {
             const token = localStorage.getItem('authToken');
             const queryParams = new URLSearchParams({ search: searchTerm, page: page, limit: 10 }).toString();
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/${endpoint}?${queryParams}`, {
+            const response = await fetch(`/api/api/${endpoint}?${queryParams}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const result = await response.json();

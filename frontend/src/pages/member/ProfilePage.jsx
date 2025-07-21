@@ -7,7 +7,7 @@ function ProfilePage() {
 
     useEffect(() => {
         const fetchProfile = async () => {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/my/profile`, {
+            const response = await fetch(`/api/api/my/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -21,7 +21,7 @@ function ProfilePage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/my/profile`, {
+        const response = await fetch(`/api/api/my/profile`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify(profile)
