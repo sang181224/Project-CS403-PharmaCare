@@ -100,10 +100,7 @@ function PaymentPage() {
 
     const handleSubmitOrder = async (e) => {
         e.preventDefault();
-        if (cart.length === 0) {
-            toast.error('Giỏ hàng của bạn đang trống.');
-            return;
-        }
+        if (cart.length === 0) return toast.error('Giỏ hàng của bạn đang trống.');
 
         const orderData = {
             customerInfo,
@@ -118,7 +115,11 @@ function PaymentPage() {
             const token = localStorage.getItem('authToken');
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Luôn gửi header này, kể cả khi token là null
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(orderData)
             });
 

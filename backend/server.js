@@ -14,74 +14,59 @@ const SECRET_KEY = 'your_very_secret_key_for_pharmacare';
 
 // --- CẤU HÌNH MIDDLEWARE TOÀN CỤC ---
 app.use(cors({
-    origin: 'https://project-cs-403-pharma-care.vercel.app'
+    origin: '*' // Tạm thời cho phép tất cả các domain để gỡ lỗi, sau này sẽ sửa lại
 }));
 app.use(express.json());
-
 const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-}
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 app.use('/uploads', express.static(uploadsDir));
 
-
-// --- CẤU HÌNH DATABASE (SỬ DỤNG CONNECTION POOL VÀ PROMISE) ---
-// --- CẤU HÌNH DATABASE (SỬ DỤNG BIẾN MÔI TRƯỜNG) ---
+// --- CẤU HÌNH DATABASE ---
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,       // Sẽ đọc từ biến môi trường
-    user: process.env.DB_USER,       // Sẽ đọc từ biến môi trường
-    password: process.env.DB_PASSWORD, // Sẽ đọc từ biến môi trường
-    database: process.env.DB_DATABASE, // Sẽ đọc từ biến môi trường
-    port: process.env.DB_PORT,         // Sẽ đọc từ biến môi trường
-    ssl: {
-        rejectUnauthorized: true
-    },
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
+    port: process.env.DB_PORT,
+    ssl: { rejectUnauthorized: true },
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 }).promise();
 
-
-// --- CẤU HÌNH UPLOAD FILE VỚI MULTER ---
+// --- CẤU HÌNH UPLOAD FILE ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, './uploads'),
     filename: (req, file, cb) => cb(null, 'product-' + Date.now() + path.extname(file.originalname))
 });
 const imageFileFilter = (req, file, cb) => {
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
-        return cb(new Error('Chỉ cho phép upload file ảnh!'), false);
-    }
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) return cb(new Error('Chỉ cho phép upload file ảnh!'), false);
     cb(null, true);
 };
 const upload = multer({ storage: storage, fileFilter: imageFileFilter });
 
-
-// --- MIDDLEWARE XÁC THỰC TOKEN ---
+// --- MIDDLEWARE XÁC THỰC ---
 const checkAuth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) return res.sendStatus(401);
-
     jwt.verify(token, SECRET_KEY, (err, user) => {
         if (err) return res.sendStatus(403);
         req.user = user;
         next();
     });
 };
-// --- MIDDLEWARE XÁC THỰC "MỀM" (TÙY CHỌN) ---
+
 const softCheckAuth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    if (!token) {
-        return next(); // Không có token, vẫn cho qua
-    }
+    if (!token) return next();
     jwt.verify(token, SECRET_KEY, (err, user) => {
-        if (!err) {
-            req.user = user; // Gắn thông tin user nếu token hợp lệ
-        }
-        next(); // Luôn cho qua, kể cả khi token lỗi
+        if (!err) req.user = user;
+        next();
     });
 };
+
 const checkRole = (allowedRoles) => (req, res, next) => {
     if (req.user && allowedRoles.includes(req.user.vaiTro)) {
         next();
@@ -89,19 +74,18 @@ const checkRole = (allowedRoles) => (req, res, next) => {
         res.status(403).json({ error: 'Không có quyền truy cập.' });
     }
 };
+
 // =================================================================
 // ---                       CÁC API ROUTE                       ---
 // =================================================================
-app.get('/', (req, res) => { // Thêm lại route gốc
-    res.send('Backend PharmaCare đang hoạt động!');
-});
-// --- AUTH ROUTES ---
+
+// --- PUBLIC & AUTH ROUTES ---
 app.post('/api/register', async (req, res) => {
     const { hoTen, email, matKhau } = req.body;
     if (!hoTen || !email || !matKhau) return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin.' });
     try {
         const hashedPassword = await bcrypt.hash(matKhau, 10);
-        await pool.query(`INSERT INTO users (hoTen, email, matKhau) VALUES (?, ?, ?)`, [hoTen, email, hashedPassword]);
+        await pool.query(`INSERT INTO users (hoTen, email, matKhau, vaiTro) VALUES (?, ?, ?, 'thanh_vien')`, [hoTen, email, hashedPassword]);
         res.status(201).json({ message: 'Đăng ký thành công!' });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email đã được sử dụng.' });
@@ -524,52 +508,29 @@ app.delete('/api/orders/:id', async (req, res) => {
 app.post('/api/orders', softCheckAuth, async (req, res) => {
     const { customerInfo, items } = req.body;
     const userId = req.user ? req.user.id : null;
-
-    if (!customerInfo || !items || !items.length) {
-        return res.status(400).json({ error: 'Dữ liệu không hợp lệ.' });
-    }
-
+    if (!customerInfo || !items || !items.length) return res.status(400).json({ error: 'Dữ liệu không hợp lệ.' });
     const connection = await pool.getConnection();
     try {
         await connection.beginTransaction();
-
-        // Logic tạo mã đơn hàng
         const today = new Date();
         const datePrefix = today.getFullYear().toString().slice(-2) + ('0' + (today.getMonth() + 1)).slice(-2) + ('0' + today.getDate()).slice(-2);
         const [lastOrder] = await connection.query("SELECT ma_don_hang FROM don_hang WHERE ma_don_hang LIKE ? ORDER BY id DESC LIMIT 1", [`HD-${datePrefix}-%`]);
         let newSequence = 1;
-        if (lastOrder.length > 0) {
-            newSequence = parseInt(lastOrder[0].ma_don_hang.split('-')[2]) + 1;
-        }
+        if (lastOrder.length > 0) newSequence = parseInt(lastOrder[0].ma_don_hang.split('-')[2]) + 1;
         const orderCode = `HD-${datePrefix}-${newSequence.toString().padStart(4, '0')}`;
-
         const totalAmount = items.reduce((sum, item) => sum + (item.so_luong * item.don_gia), 0);
-
-        // 1. Insert vào don_hang
         const orderSql = `INSERT INTO don_hang (ma_don_hang, id_thanh_vien, ten_khach_hang, dia_chi_giao, so_dien_thoai, trang_thai, tong_tien) VALUES (?, ?, ?, ?, ?, ?, ?)`;
         const [orderResult] = await connection.query(orderSql, [orderCode, userId, customerInfo.ten_khach_hang, customerInfo.dia_chi_giao, customerInfo.so_dien_thoai, 'Đang xử lý', totalAmount]);
         const newOrderId = orderResult.insertId;
-
-        // 2. Lặp và xử lý từng item một cách tuần tự để đảm bảo ổn định
         for (const item of items) {
-            // 2a. Insert vào chi_tiet_don_hang
-            const itemSql = `INSERT INTO chi_tiet_don_hang (id_don_hang, id_san_pham, so_luong, don_gia, thanh_tien) VALUES (?, ?, ?, ?, ?)`;
-            await connection.query(itemSql, [newOrderId, item.id_san_pham, item.so_luong, item.don_gia, item.so_luong * item.don_gia]);
-
-            // 2b. Cập nhật tồn kho sản phẩm
-            const stockSql = `UPDATE products SET so_luong_ton = so_luong_ton - ? WHERE id = ?`;
-            await connection.query(stockSql, [item.so_luong, item.id_san_pham]);
+            await connection.query(`INSERT INTO chi_tiet_don_hang (id_don_hang, id_san_pham, so_luong, don_gia, thanh_tien) VALUES (?, ?, ?, ?, ?)`, [newOrderId, item.id_san_pham, item.so_luong, item.don_gia, item.so_luong * item.don_gia]);
+            await connection.query(`UPDATE products SET so_luong_ton = so_luong_ton - ? WHERE id = ?`, [item.so_luong, item.id_san_pham]);
         }
-
         await connection.commit();
-
-        // Gửi phản hồi thành công
         res.status(201).json({ message: `Tạo đơn hàng ${orderCode} thành công!`, orderId: newOrderId });
-
     } catch (error) {
         await connection.rollback();
-        console.error("LỖI KHI TẠO ĐƠN HÀNG:", error); // Log lỗi chi tiết ở backend
-        res.status(500).json({ error: 'Đã xảy ra lỗi ở server khi tạo đơn hàng.' });
+        res.status(500).json({ error: 'Đã xảy ra lỗi khi tạo đơn hàng.' });
     } finally {
         connection.release();
     }
