@@ -1446,24 +1446,34 @@ app.get('/api/my/orders/:id', checkAuth, async (req, res) => {
 });
 // API CÔNG KHAI để gửi yêu cầu tư vấn
 // Dùng softCheckAuth để có thể lấy thông tin user nếu họ đã đăng nhập
+// API CÔNG KHAI để gửi yêu cầu tư vấn (Phiên bản đã sửa lỗi)
 app.post('/api/public/consultations', softCheckAuth, async (req, res) => {
-    const { ten_nguoi_gui, email_nguoi_gui, tieu_de, noi_dung } = req.body;
-
-    // Lấy thông tin từ token nếu có, ngược lại lấy từ form
-    const finalName = req.user ? req.user.hoTen : ten_nguoi_gui;
-    const finalEmail = req.user ? req.user.email : email_nguoi_gui;
-
-    if (!finalName || !noi_dung) {
-        return res.status(400).json({ error: 'Tên và nội dung không được để trống.' });
-    }
-
     try {
+        const { ten_nguoi_gui, email_nguoi_gui, tieu_de, noi_dung } = req.body;
+
+        let finalName = ten_nguoi_gui;
+        let finalEmail = email_nguoi_gui;
+
+        // Nếu người dùng đã đăng nhập, lấy thông tin mới nhất từ database để đảm bảo chính xác
+        if (req.user && req.user.id) {
+            const [userRows] = await pool.query("SELECT hoTen, email FROM users WHERE id = ?", [req.user.id]);
+            if (userRows.length > 0) {
+                finalName = userRows[0].hoTen;
+                finalEmail = userRows[0].email;
+            }
+        }
+
+        if (!finalName || !noi_dung) {
+            return res.status(400).json({ error: 'Tên và nội dung không được để trống.' });
+        }
+
         const sql = `INSERT INTO yeu_cau_tu_van (ten_nguoi_gui, email_nguoi_gui, tieu_de, noi_dung, trang_thai) VALUES (?, ?, ?, ?, 'Mới')`;
         await pool.query(sql, [finalName, finalEmail, tieu_de, noi_dung]);
 
         res.status(201).json({ message: 'Gửi yêu cầu tư vấn thành công! Chúng tôi sẽ sớm phản hồi cho bạn.' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Lỗi khi gửi yêu cầu tư vấn:", error);
+        res.status(500).json({ error: 'Đã có lỗi xảy ra ở server.' });
     }
 });
 // API lấy lịch sử tư vấn của chính người dùng đang đăng nhập
