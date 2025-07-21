@@ -22,12 +22,14 @@ app.use('/uploads', express.static(uploadsDir));
 
 // --- CẤU HÌNH DATABASE ---
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    port: process.env.DB_PORT,
-    ssl: { rejectUnauthorized: true },
+    host: process.env.DB_HOST,       // Sẽ đọc từ biến môi trường
+    user: process.env.DB_USER,       // Sẽ đọc từ biến môi trường
+    password: process.env.DB_PASSWORD, // Sẽ đọc từ biến môi trường
+    database: process.env.DB_DATABASE, // Sẽ đọc từ biến môi trường
+    port: process.env.DB_PORT,         // Sẽ đọc từ biến môi trường
+    ssl: {
+        rejectUnauthorized: true
+    },
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
