@@ -9,11 +9,10 @@ const fs = require('fs');
 
 // --- KHỞI TẠO VÀ CẤU HÌNH CƠ BẢN ---
 const app = express();
-const PORT = process.env.PORT || 3000; // Render sẽ tự cung cấp PORT
+const PORT = process.env.PORT || 3000;
 const SECRET_KEY = process.env.SECRET_KEY || 'your_very_secret_key_for_pharmacare';
 
 // --- CẤU HÌNH MIDDLEWARE TOÀN CỤC ---
-// Cho phép tất cả các nguồn gốc kết nối. Sau khi hoạt động, bạn nên đổi lại cho an toàn.
 app.use(cors());
 app.use(express.json());
 
@@ -33,17 +32,6 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 }).promise();
-
-// --- CẤU HÌNH UPLOAD FILE ---
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, './uploads'),
-    filename: (req, file, cb) => cb(null, 'product-' + Date.now() + path.extname(file.originalname))
-});
-const imageFileFilter = (req, file, cb) => {
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) return cb(new Error('Chỉ cho phép upload file ảnh!'), false);
-    cb(null, true);
-};
-const upload = multer({ storage: storage, fileFilter: imageFileFilter });
 
 // --- MIDDLEWARE XÁC THỰC ---
 const checkAuth = (req, res, next) => {
@@ -72,12 +60,12 @@ const checkRole = (allowedRoles) => (req, res, next) => {
         res.status(403).json({ error: 'Không có quyền truy cập.' });
     }
 };
-
 // =================================================================
 // ---                       CÁC API ROUTE                       ---
 // =================================================================
 
 // --- PUBLIC & AUTH ROUTES ---
+app.get('/', (req, res) => res.send('Backend PharmaCare đang hoạt động!'));
 app.post('/api/register', async (req, res) => {
     const { hoTen, email, matKhau } = req.body;
     if (!hoTen || !email || !matKhau) return res.status(400).json({ error: 'Vui lòng điền đầy đủ thông tin.' });
