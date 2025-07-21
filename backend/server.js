@@ -13,7 +13,9 @@ const PORT = process.env.PORT || 3000;
 const SECRET_KEY = process.env.SECRET_KEY || 'your_very_secret_key_for_pharmacare';
 
 // --- CẤU HÌNH MIDDLEWARE TOÀN CỤC ---
-app.use(cors());
+app.use(cors({
+    origin: 'https://ten-du-an-cua-ban.vercel.app' // <-- THAY BẰNG ĐỊA CHỈ VERCEL CỦA BẠN
+}));
 app.use(express.json());
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
