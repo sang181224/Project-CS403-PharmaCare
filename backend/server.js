@@ -1456,6 +1456,6 @@ app.get('/api/my/consultations', checkAuth, async (req, res) => {
     }
 });
 // --- KHỞI ĐỘNG SERVER ---
-app.listen(PORT, () => {
-    console.log(`Server PharmaCare đang chạy tại http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server PharmaCare đang chạy tại cổng ${PORT}`);
 });
