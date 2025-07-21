@@ -15,23 +15,27 @@ const SECRET_KEY = process.env.SECRET_KEY || 'your_very_secret_key_for_pharmacar
 // --- CẤU HÌNH MIDDLEWARE TOÀN CỤC ---
 app.use(cors());
 app.use(express.json());
-
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 app.use('/uploads', express.static(uploadsDir));
 
-// --- CẤU HÌNH DATABASE (SỬ DỤNG BIẾN MÔI TRƯỜNG) ---
+// --- CẤU HÌNH DATABASE ---
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    port: process.env.DB_PORT,
-    ssl: { rejectUnauthorized: true },
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+    host: process.env.DB_HOST, user: process.env.DB_USER, password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE, port: process.env.DB_PORT, ssl: { rejectUnauthorized: true },
+    waitForConnections: true, connectionLimit: 10, queueLimit: 0
 }).promise();
+
+// --- CẤU HÌNH UPLOAD FILE ---
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, './uploads'),
+    filename: (req, file, cb) => cb(null, 'product-' + Date.now() + path.extname(file.originalname))
+});
+const imageFileFilter = (req, file, cb) => {
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) return cb(new Error('Chỉ cho phép upload file ảnh!'), false);
+    cb(null, true);
+};
+const upload = multer({ storage: storage, fileFilter: imageFileFilter });
 
 // --- MIDDLEWARE XÁC THỰC ---
 const checkAuth = (req, res, next) => {
