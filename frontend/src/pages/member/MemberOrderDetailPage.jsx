@@ -10,7 +10,7 @@ function MemberOrderDetailPage() {
         const fetchOrderDetail = async () => {
             const token = localStorage.getItem('authToken');
             try {
-                const response = await fetch(`/api/api/my/orders/${id}`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/my/orders/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();

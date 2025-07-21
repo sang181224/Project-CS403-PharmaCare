@@ -20,7 +20,7 @@ function AddSupplierPage() {
         e.preventDefault();
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`/api/api/admin/suppliers`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/suppliers`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

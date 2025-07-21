@@ -13,7 +13,7 @@ function CategoryProducts() {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch(`/api/api/public/categories`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/public/categories`);
                 const data = await response.json();
                 if (response.ok && data.length > 0) {
                     setCategories(data);
@@ -33,7 +33,7 @@ function CategoryProducts() {
         const fetchProductsByCategory = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch(`/api/api/public/products?category=${selectedCategory}&limit=4`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/public/products?category=${selectedCategory}&limit=4`);
                 const result = await response.json(); // result là { data: [...], pagination: {...} }
 
                 if (response.ok) {

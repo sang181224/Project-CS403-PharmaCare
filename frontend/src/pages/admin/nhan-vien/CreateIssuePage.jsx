@@ -16,7 +16,7 @@ function CreateIssuePage() {
     // Tải danh sách tất cả sản phẩm khi trang được mở
     useEffect(() => {
         const fetchProducts = async () => {
-            const res = await fetch(`/api/api/products`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
             const data = await res.json();
             if (res.ok) setProducts(data.filter(p => p.so_luong_ton > 0));
         };
@@ -48,7 +48,7 @@ function CreateIssuePage() {
         if (productId) {
             try {
                 // Khi chọn sản phẩm, gọi API để lấy chi tiết và các lô của nó
-                const res = await fetch(`/api/api/products/${productId}`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${productId}`);
                 const data = await res.json();
                 if (res.ok) {
                     currentItem.availableBatches = data.batches.filter(b => b.so_luong_con > 0);
@@ -79,7 +79,7 @@ function CreateIssuePage() {
         }));
 
         try {
-            const response = await fetch(`/api/api/issues`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/issues`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('authToken')}` },
                 body: JSON.stringify({ issueInfo, items: formattedItems })

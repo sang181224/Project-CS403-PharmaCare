@@ -13,7 +13,7 @@ function EditOrderPage() {
     useEffect(() => {
         const fetchOrder = async () => {
             try {
-                const response = await fetch(`/api/api/orders/${id}`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}`);
                 const data = await response.json();
                 if (response.ok) {
                     setOrder(data);
@@ -31,7 +31,7 @@ function EditOrderPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch(`/api/api/orders/${id}/status`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: status }) // Chỉ gửi trạng thái mới

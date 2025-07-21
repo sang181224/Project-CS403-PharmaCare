@@ -22,7 +22,7 @@ function OrderDetailPage() {
     useEffect(() => {
         const fetchOrderDetail = async () => {
             try {
-                const response = await fetch(`/api/api/orders/${id}`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}`);
                 const data = await response.json();
                 if (response.ok) setOrder(data);
                 else throw new Error(data.error);
@@ -39,7 +39,7 @@ function OrderDetailPage() {
 
         try {
             const token = localStorage.getItem('authToken');
-            const response = await fetch(`/api/api/orders/${id}/create-invoice`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${id}/create-invoice`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
