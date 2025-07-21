@@ -9,19 +9,19 @@ const fs = require('fs');
 
 // --- KHỞI TẠO VÀ CẤU HÌNH CƠ BẢN ---
 const app = express();
-const PORT = 3000;
-const SECRET_KEY = 'your_very_secret_key_for_pharmacare';
+const PORT = process.env.PORT || 3000; // Render sẽ tự cung cấp PORT
+const SECRET_KEY = process.env.SECRET_KEY || 'your_very_secret_key_for_pharmacare';
 
 // --- CẤU HÌNH MIDDLEWARE TOÀN CỤC ---
-app.use(cors({
-    origin: '*' // Tạm thời cho phép tất cả các domain để gỡ lỗi, sau này sẽ sửa lại
-}));
+// Cho phép tất cả các nguồn gốc kết nối. Sau khi hoạt động, bạn nên đổi lại cho an toàn.
+app.use(cors());
 app.use(express.json());
+
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 app.use('/uploads', express.static(uploadsDir));
 
-// --- CẤU HÌNH DATABASE ---
+// --- CẤU HÌNH DATABASE (SỬ DỤNG BIẾN MÔI TRƯỜNG) ---
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -56,7 +56,6 @@ const checkAuth = (req, res, next) => {
         next();
     });
 };
-
 const softCheckAuth = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -66,7 +65,6 @@ const softCheckAuth = (req, res, next) => {
         next();
     });
 };
-
 const checkRole = (allowedRoles) => (req, res, next) => {
     if (req.user && allowedRoles.includes(req.user.vaiTro)) {
         next();
